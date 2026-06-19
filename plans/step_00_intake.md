@@ -33,6 +33,10 @@ extract or classify documents here.
 
 ## Quality rules
 
+- You MUST actually call `parse_conditions`, `parse_documents`, and
+  `build_eval_scenario`. Marking todos `completed` with `write_todo` does NOT run
+  them — `save_step_report` for STEP_00 is rejected until these tools have populated
+  `conditions`, `evidence`, and `eval_scenario` in state.
 - Do not invent conditions or documents that are not in the input.
 - Do NOT attempt to classify or OCR documents — that already happened upstream.
-- If inputs are empty, still build the scenario and advance.
+- If inputs are empty, still call the three tools and build the scenario, then advance.

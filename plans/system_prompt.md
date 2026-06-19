@@ -36,7 +36,12 @@ Rules:
 1. Work the current step using its tools, then call `save_step_report` to record a
    short summary and advance. Never skip `save_step_report`.
 2. Do not jump ahead or call tools for a future step.
-3. Use `write_todo` to track substeps when helpful.
+3. Use `write_todo` to track substeps when helpful. **`write_todo` only records
+   status — it does no work.** Never mark a substep `completed` (or claim a result in
+   `save_step_report`) unless you have actually called the tool that produces that
+   substep's output. In particular, STEP_00 requires real calls to
+   `parse_conditions`, `parse_documents`, and `build_eval_scenario`; the step report
+   is rejected if those did not run.
 4. For evaluation steps (02–06): first load the conditions + candidate documents,
    then reason like an underwriter over each document's **structured extracted
    fields** (the rack & stack output; raw text is included only when available)

@@ -189,31 +189,9 @@ REST. Wire up the calls however the frontend/backend prefers; you only need:
 | **Input** | the `EvaluatorInput` object (§2.1) |
 | **Result** | read `final_output` from the thread/run state (§2.2) |
 
-> **Never call the graph (or Anthropic) directly from the browser.** Runs are
-> long-running (minutes) and your LangSmith API key must stay secret. Proxy through
-> your own server/backend, which holds the key and talks to the URL above.
-
-The typical sequence is: create a thread → start a run → wait or poll for completion
-→ read `final_output`. See §6 for why you should prefer the non-blocking
-"start + poll" pattern.
-
 ---
 
-## 4. Recommended frontend flow
-
-1. **Gather inputs.** Usually you already have `conditions_json`, `documents_json`,
-   and `eligibility_json` from upstream systems — forward them as-is.
-2. **Start the run** and immediately show an "Evaluating…" state. Runs take
-   minutes; do it in the background and let the user navigate away.
-3. **Show progress** (optional) by streaming run `updates` (or polling the thread
-   state) and reading `current_step` (`STEP_00` … `STEP_07`) and `step_reports`.
-4. **On completion**, read `final_output` and render.
-5. **Persist** `final_output` keyed by `loan_id` / `thread_id` so reviewers can
-   reopen it without re-running.
-
----
-
-## 5. Rendering guidance
+## 4. Rendering guidance
 
 - **Review queue:** `evaluations` is already ordered for review — render it top to
   bottom. Show a "Needs review" badge when `needs_human_review` is true.
@@ -240,7 +218,7 @@ The typical sequence is: create a thread → start a run → wait or poll for co
 
 ---
 
-## 6. Errors & edge cases
+## 5. Errors & edge cases
 
 - **No `final_output`:** the run ended early. Surface a retry; inspect run status /
   last messages for the cause.
@@ -252,14 +230,13 @@ The typical sequence is: create a thread → start a run → wait or poll for co
   Prefer the **non-blocking "start + poll" pattern**: create a run (returns
   immediately with a `run_id` / `pending` status), then poll the run status or the
   thread state every few seconds until it's `success`/`error`, and read
-  `final_output` then. This way a gateway/proxy timeout never kills the run. (A
-  blocking "run and wait" call also exists, but is only safe for short timeouts.)
+  `final_output` then. This way a gateway/proxy timeout never kills the run.
 - **Idempotency:** reuse one thread per loan evaluation; create a new thread for a
   fresh run.
 
 ---
 
-## 7. Sample files
+## 6. Sample files
 
 | File | Purpose |
 |------|---------|
