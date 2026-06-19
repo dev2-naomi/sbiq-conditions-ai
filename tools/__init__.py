@@ -12,6 +12,7 @@ from tools.intake_tools import build_eval_scenario, parse_conditions, parse_docu
 from tools.matching_tools import deterministic_candidate_match, store_candidate_matches
 from tools.evaluation_tools import (
     get_conditions_to_evaluate,
+    load_guideline_sections,
     store_assets_evaluations,
     store_credit_evaluations,
     store_income_evaluations,
@@ -26,19 +27,20 @@ GENERAL_TOOLS = [write_todo, save_step_report, get_workflow_status]
 # Per-step
 STEP_00_TOOLS = [parse_conditions, parse_documents, build_eval_scenario]
 STEP_01_TOOLS = [deterministic_candidate_match, store_candidate_matches]
-STEP_02_TOOLS = [get_conditions_to_evaluate, store_income_evaluations]
-STEP_03_TOOLS = [get_conditions_to_evaluate, store_assets_evaluations]
-STEP_04_TOOLS = [get_conditions_to_evaluate, store_credit_evaluations]
-STEP_05_TOOLS = [get_conditions_to_evaluate, store_property_evaluations]
-STEP_06_TOOLS = [get_conditions_to_evaluate, store_other_evaluations]
+STEP_02_TOOLS = [get_conditions_to_evaluate, load_guideline_sections, store_income_evaluations]
+STEP_03_TOOLS = [get_conditions_to_evaluate, load_guideline_sections, store_assets_evaluations]
+STEP_04_TOOLS = [get_conditions_to_evaluate, load_guideline_sections, store_credit_evaluations]
+STEP_05_TOOLS = [get_conditions_to_evaluate, load_guideline_sections, store_property_evaluations]
+STEP_06_TOOLS = [get_conditions_to_evaluate, load_guideline_sections, store_other_evaluations]
 STEP_07_TOOLS = [merge_evaluations, generate_final_output]
 
 ALL_TOOLS = [
     *GENERAL_TOOLS,
     *STEP_00_TOOLS,
     *STEP_01_TOOLS,
-    # get_conditions_to_evaluate is shared across 02-06; include once.
+    # get_conditions_to_evaluate / load_guideline_sections are shared across 02-06.
     get_conditions_to_evaluate,
+    load_guideline_sections,
     store_income_evaluations,
     store_assets_evaluations,
     store_credit_evaluations,

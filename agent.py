@@ -132,10 +132,12 @@ _DEFAULT_INITIAL_PROMPT = (
     "  STEP_06: get_conditions_to_evaluate('other'), store_other_evaluations\n"
     "  STEP_07: merge_evaluations, generate_final_output\n\n"
     "For STEP_02 through STEP_06: first load the category's conditions and their "
-    "candidate documents, then reason as a senior underwriter over the document text "
-    "to decide fulfillment for each condition. Produce one evaluation per condition "
-    "with result, confidence, satisfied_points, missing_or_unclear_points, and "
-    "recommended_next_action.\n"
+    "candidate documents. If a condition is ambiguous or you need the standard a "
+    "document must meet, call load_guideline_sections as a REFERENCE (the condition "
+    "text is always primary; never invent requirements). Then reason as a senior "
+    "underwriter over the document text to decide fulfillment for each condition. "
+    "Produce one evaluation per condition with result, confidence, satisfied_points, "
+    "missing_or_unclear_points, recommended_next_action, and guideline_refs.\n"
     "If a category has no conditions, immediately call save_step_report and move on."
 )
 

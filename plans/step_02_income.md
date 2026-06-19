@@ -9,10 +9,25 @@ Evaluate whether the candidate documents satisfy each **income** condition.
 1. Call `get_conditions_to_evaluate` with `category="income"`. You receive each
    income condition and the full text of its candidate documents.
 2. If `condition_count` is 0, immediately call `save_step_report` and advance.
-3. For each condition, reason as a senior underwriter over the document text and
-   produce one evaluation.
-4. Call `store_income_evaluations` with the list of evaluations.
-5. Call `save_step_report` for `STEP_02`.
+3. If a condition is ambiguous or you need the standard a document must meet
+   (e.g. how many months of bank statements, which tax years/schedules, signed
+   P&L recency), call `load_guideline_sections` for the relevant section(s) —
+   see "Guidelines (reference)" below.
+4. For each condition, reason as a senior underwriter over the document text and
+   produce one evaluation. Record any sections you relied on in `guideline_refs`.
+5. Call `store_income_evaluations` with the list of evaluations.
+6. Call `save_step_report` for `STEP_02`.
+
+## Guidelines (reference)
+
+The NQMF guidelines are a **reference to clarify acceptance criteria** — they are
+NOT a source of new requirements. The condition text is always primary; use
+guidelines only to resolve ambiguity or define document-validity standards, and
+never to add requirements the condition did not ask for.
+
+Relevant income sections: `FULL DOCUMENTATION`, `EMPLOYMENT`,
+`ALTERNATIVE DOCUMENTATION (ALT DOC)`, `RATIOS AND QUALIFYING – FULL AND ALT DOC`,
+`OTHER INCOME`, `RENTAL INCOME REQUIREMENTS`.
 
 ## What income evidence typically proves
 
@@ -46,6 +61,10 @@ Evaluate whether the candidate documents satisfy each **income** condition.
   "satisfied_points": ["..."],
   "missing_or_unclear_points": ["..."],
   "evidence_used": ["25988"],
-  "recommended_next_action": "..."
+  "recommended_next_action": "...",
+  "guideline_refs": ["EMPLOYMENT"]
 }
 ```
+
+`guideline_refs` is optional — include the guideline section name(s) you consulted,
+or leave it empty if the verdict came from the condition text and documents alone.

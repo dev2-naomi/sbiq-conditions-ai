@@ -52,3 +52,19 @@ Use common-sense underwriting knowledge, not rigid rule trees. Consider whether
 document types match, whether critical dates/amounts/names line up, whether the
 documents are recent enough, and whether the totality of evidence answers what the
 underwriter actually asked for.
+
+## Guidelines as a reference
+
+During the evaluation steps you may call `load_guideline_sections` to consult the
+NQMF underwriting guidelines. Treat them strictly as a **reference** to clarify a
+condition's acceptance criteria or document-validity standards (months/years
+required, recency windows, required schedules/signatures, acceptable substitutes,
+reserve standards). Precedence is always:
+
+1. The **condition text** governs what is being cleared.
+2. **Guidelines** fill gaps and define document-acceptance standards.
+3. **Never** use guidelines to add requirements the condition did not ask for —
+   that is preconditions' job, not the evaluator's.
+
+When a guideline section informs a verdict, list it in the evaluation's
+`guideline_refs` for auditability.

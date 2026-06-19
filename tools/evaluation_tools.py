@@ -14,6 +14,7 @@ from langgraph.types import Command
 from typing_extensions import Annotated
 
 from tools.shared.evaluation import build_category_context, store_evaluations_command
+from tools.shared.guidelines import load_sections
 
 
 @tool
@@ -31,6 +32,35 @@ def get_conditions_to_evaluate(
     """
     s = state or {}
     return build_category_context(s, (category or "").strip().lower())
+
+
+@tool
+def load_guideline_sections(
+    section_names: list,
+    tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    state: Annotated[dict, InjectedState] = None,
+) -> str:
+    """
+    Load NQMF underwriting guideline text for the given section headings, as a
+    REFERENCE to clarify a condition's acceptance criteria or document-validity
+    standards (e.g. how many months/years are required, recency windows, required
+    schedules/signatures, acceptable document substitutes, reserve standards).
+
+    Use this only when the condition text is ambiguous or you need the standard a
+    document must meet. The CONDITION TEXT is always primary — never use the
+    guidelines to invent requirements the condition did not ask for.
+
+    Example section names (must match guideline headings): "ASSETS",
+    "ASSET DOCUMENTATION", "QUALIFIED ASSETS", "CREDIT", "HOUSING HISTORY",
+    "LIABILITIES", "FULL DOCUMENTATION", "EMPLOYMENT", "ALTERNATIVE DOCUMENTATION
+    (ALT DOC)", "APPRAISALS", "PROPERTY INSURANCE", "HAZARD INSURANCE",
+    "TITLE INSURANCE", "CHAIN OF TITLE", "PROPERTY CONSIDERATIONS", "COMPLIANCE",
+    "BORROWER ELIGIBILITY". (If a heading isn't found, you'll get a not-found note.)
+
+    Args:
+        section_names: list of guideline section headings to load.
+    """
+    return load_sections(list(section_names or []))
 
 
 @tool

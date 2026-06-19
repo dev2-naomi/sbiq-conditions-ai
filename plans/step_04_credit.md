@@ -10,9 +10,19 @@ LOS taxonomy this group also includes **identity**, **housing history**, and
 
 1. Call `get_conditions_to_evaluate` with `category="credit"`.
 2. If `condition_count` is 0, call `save_step_report` and advance.
-3. Reason over the documents and produce one evaluation per condition.
-4. Call `store_credit_evaluations`.
-5. Call `save_step_report` for `STEP_04`.
+3. If a condition is ambiguous or you need the standard a document must meet
+   (e.g. months of housing history, acceptable VOR/cancelled-check substitutes),
+   call `load_guideline_sections` (e.g. `CREDIT`, `HOUSING HISTORY`, `LIABILITIES`).
+4. Reason over the documents and produce one evaluation per condition; record any
+   sections you relied on in `guideline_refs`.
+5. Call `store_credit_evaluations`.
+6. Call `save_step_report` for `STEP_04`.
+
+## Guidelines (reference)
+
+Guidelines are a reference to clarify acceptance criteria, never a source of new
+requirements — the condition text is primary. Relevant sections: `CREDIT`,
+`HOUSING HISTORY`, `HOUSING EVENTS AND PRIOR BANKRUPTCY`, `LIABILITIES`.
 
 ## What credit evidence typically proves
 

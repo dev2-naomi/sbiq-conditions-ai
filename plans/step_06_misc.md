@@ -9,9 +9,18 @@ fall into income, assets, credit, or property.
 
 1. Call `get_conditions_to_evaluate` with `category="other"`.
 2. If `condition_count` is 0, call `save_step_report` and advance.
-3. Reason over the documents and produce one evaluation per condition.
-4. Call `store_other_evaluations`.
-5. Call `save_step_report` for `STEP_06`. This is the last evaluation step.
+3. If a condition is ambiguous, you may call `load_guideline_sections` (e.g.
+   `COMPLIANCE`, `BORROWER ELIGIBILITY`, `GENERAL UNDERWRITING REQUIREMENTS`).
+4. Reason over the documents and produce one evaluation per condition; record any
+   sections you relied on in `guideline_refs`.
+5. Call `store_other_evaluations`.
+6. Call `save_step_report` for `STEP_06`. This is the last evaluation step.
+
+## Guidelines (reference)
+
+Guidelines are a reference to clarify acceptance criteria, never a source of new
+requirements — the condition text is primary. Relevant sections: `COMPLIANCE`,
+`BORROWER ELIGIBILITY`, `GENERAL UNDERWRITING REQUIREMENTS`.
 
 ## What this evidence typically proves
 

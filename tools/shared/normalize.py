@@ -260,6 +260,8 @@ def normalize_evaluation(raw: dict, default_category: str = "other") -> dict:
         "recommended_next_action": _first(
             raw, "recommended_next_action", "next_action", "recommendation", default=""
         ),
+        # Guideline section(s) consulted to justify the verdict (for auditability).
+        "guideline_refs": _as_list(_first(raw, "guideline_refs", "guideline_sections", "guidelines", default=[])),
     }
 
 

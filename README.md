@@ -45,6 +45,11 @@ STEP_07  Aggregation & HIL Packaging ─ Merge verdicts, derive status, flag rev
   STEP_01; deterministic keyword matching and LLM triage only supplement them.
 - **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over document text
   rather than hard-coded checks, mirroring `predicted-conditions`.
+- **Guidelines as a scoped reference**: during evaluation the agent can call
+  `load_guideline_sections` to consult `data/guidelines.md` (NQMF) — strictly to
+  clarify a condition's acceptance criteria or document-validity standards. The
+  **condition text is always primary**; guidelines never add new requirements. Any
+  section consulted is recorded in the evaluation's `guideline_refs`.
 - **Dynamic tool scoping & plan injection**: Each step only sees its own tools and
   plan (`plans/step_XX_*.md`), reducing context cost and out-of-scope tool calls.
 - **Message summarization**: Completed-step messages are compressed before each LLM
@@ -108,6 +113,7 @@ callers only need to send data. The final result is in thread state under
       "missing_or_unclear_points": ["Loss payee / mortgagee clause (ISAOA + loan number) not shown"],
       "evidence_used": ["26030"],
       "recommended_next_action": "Request updated dec page with the lender's mortgagee clause.",
+      "guideline_refs": ["PROPERTY INSURANCE"],
       "overall_status": "partially_fulfilled",
       "needs_human_review": true
     }
@@ -156,14 +162,17 @@ sbiq-conditions-ai/
 │   ├── general.py            # write_todo, save_step_report, get_workflow_status
 │   ├── intake_tools.py       # STEP_00 (parse_conditions, parse_documents, build_eval_scenario)
 │   ├── matching_tools.py     # STEP_01 (candidate matching)
-│   ├── evaluation_tools.py   # STEP_02–06 (shared getter + per-category storers)
+│   ├── evaluation_tools.py   # STEP_02–06 (shared getter, load_guideline_sections, per-category storers)
 │   ├── aggregation_tools.py  # STEP_07
 │   └── shared/
 │       ├── normalize.py      # LOS condition + R&S document + verdict normalization, HIL gating
 │       ├── matching.py       # result_document_ids + deterministic cheap-filter matcher
-│       └── evaluation.py     # Category context builder + evaluation storage
+│       ├── evaluation.py     # Category context builder + evaluation storage
+│       └── guidelines.py     # NQMF guidelines parser (section lookup)
 │
-└── data/input/               # Sample conditions (Encompass shape), R&S documents, eligibility
+├── data/
+│   ├── guidelines.md         # NQMF underwriting guidelines (evaluation reference)
+│   └── input/                # Sample conditions (Encompass shape), R&S documents, eligibility
 ```
 
 ## Run Locally

@@ -10,9 +10,20 @@ purchase agreement** conditions.
 
 1. Call `get_conditions_to_evaluate` with `category="property"`.
 2. If `condition_count` is 0, call `save_step_report` and advance.
-3. Reason over the documents and produce one evaluation per condition.
-4. Call `store_property_evaluations`.
-5. Call `save_step_report` for `STEP_05`.
+3. If a condition is ambiguous or you need the standard a document must meet
+   (e.g. appraisal/2nd-appraisal triggers, insurance coverage/dec requirements,
+   title/chain-of-title standards), call `load_guideline_sections` (e.g.
+   `APPRAISALS`, `PROPERTY INSURANCE`, `TITLE INSURANCE`, `PROPERTY CONSIDERATIONS`).
+4. Reason over the documents and produce one evaluation per condition; record any
+   sections you relied on in `guideline_refs`.
+5. Call `store_property_evaluations`.
+6. Call `save_step_report` for `STEP_05`.
+
+## Guidelines (reference)
+
+Guidelines are a reference to clarify acceptance criteria, never a source of new
+requirements — the condition text is primary. Relevant sections: `APPRAISALS`,
+`PROPERTY CONSIDERATIONS`, `PROPERTY INSURANCE`, `TITLE INSURANCE`.
 
 ## What property evidence typically proves
 

@@ -39,11 +39,12 @@
       "name": "Income Condition Evaluation",
       "description": "Deep fulfillment evaluation for income-category conditions against their candidate documents.",
       "plan_file": "step_02_income.md",
-      "tools": ["get_conditions_to_evaluate", "store_income_evaluations"],
+      "tools": ["get_conditions_to_evaluate", "load_guideline_sections", "store_income_evaluations"],
       "substeps": [
         {"id": "2.1", "name": "Load income conditions + candidate documents", "tools": ["get_conditions_to_evaluate"]},
-        {"id": "2.2", "name": "Store income evaluations", "tools": ["store_income_evaluations"]},
-        {"id": "2.3", "name": "Save step report", "tools": ["save_step_report"]}
+        {"id": "2.2", "name": "Load income guideline sections (if needed)", "tools": ["load_guideline_sections"]},
+        {"id": "2.3", "name": "Store income evaluations", "tools": ["store_income_evaluations"]},
+        {"id": "2.4", "name": "Save step report", "tools": ["save_step_report"]}
       ]
     },
     {
@@ -51,11 +52,12 @@
       "name": "Assets & Reserves Condition Evaluation",
       "description": "Deep fulfillment evaluation for asset/reserves-category conditions against their candidate documents.",
       "plan_file": "step_03_assets.md",
-      "tools": ["get_conditions_to_evaluate", "store_assets_evaluations"],
+      "tools": ["get_conditions_to_evaluate", "load_guideline_sections", "store_assets_evaluations"],
       "substeps": [
         {"id": "3.1", "name": "Load asset conditions + candidate documents", "tools": ["get_conditions_to_evaluate"]},
-        {"id": "3.2", "name": "Store asset evaluations", "tools": ["store_assets_evaluations"]},
-        {"id": "3.3", "name": "Save step report", "tools": ["save_step_report"]}
+        {"id": "3.2", "name": "Load asset/reserves guideline sections (if needed)", "tools": ["load_guideline_sections"]},
+        {"id": "3.3", "name": "Store asset evaluations", "tools": ["store_assets_evaluations"]},
+        {"id": "3.4", "name": "Save step report", "tools": ["save_step_report"]}
       ]
     },
     {
@@ -63,11 +65,12 @@
       "name": "Credit Condition Evaluation",
       "description": "Deep fulfillment evaluation for credit-category conditions (including identity, housing history, undisclosed property) against their candidate documents.",
       "plan_file": "step_04_credit.md",
-      "tools": ["get_conditions_to_evaluate", "store_credit_evaluations"],
+      "tools": ["get_conditions_to_evaluate", "load_guideline_sections", "store_credit_evaluations"],
       "substeps": [
         {"id": "4.1", "name": "Load credit conditions + candidate documents", "tools": ["get_conditions_to_evaluate"]},
-        {"id": "4.2", "name": "Store credit evaluations", "tools": ["store_credit_evaluations"]},
-        {"id": "4.3", "name": "Save step report", "tools": ["save_step_report"]}
+        {"id": "4.2", "name": "Load credit guideline sections (if needed)", "tools": ["load_guideline_sections"]},
+        {"id": "4.3", "name": "Store credit evaluations", "tools": ["store_credit_evaluations"]},
+        {"id": "4.4", "name": "Save step report", "tools": ["save_step_report"]}
       ]
     },
     {
@@ -75,11 +78,12 @@
       "name": "Property Condition Evaluation",
       "description": "Deep fulfillment evaluation for property-category conditions (appraisal, title, insurance, taxes, purchase agreement, flood) against their candidate documents.",
       "plan_file": "step_05_property.md",
-      "tools": ["get_conditions_to_evaluate", "store_property_evaluations"],
+      "tools": ["get_conditions_to_evaluate", "load_guideline_sections", "store_property_evaluations"],
       "substeps": [
         {"id": "5.1", "name": "Load property conditions + candidate documents", "tools": ["get_conditions_to_evaluate"]},
-        {"id": "5.2", "name": "Store property evaluations", "tools": ["store_property_evaluations"]},
-        {"id": "5.3", "name": "Save step report", "tools": ["save_step_report"]}
+        {"id": "5.2", "name": "Load property/appraisal/title/insurance guideline sections (if needed)", "tools": ["load_guideline_sections"]},
+        {"id": "5.3", "name": "Store property evaluations", "tools": ["store_property_evaluations"]},
+        {"id": "5.4", "name": "Save step report", "tools": ["save_step_report"]}
       ]
     },
     {
@@ -87,11 +91,12 @@
       "name": "Misc & Other Condition Evaluation",
       "description": "Deep fulfillment evaluation for miscellaneous/other-category conditions against their candidate documents.",
       "plan_file": "step_06_misc.md",
-      "tools": ["get_conditions_to_evaluate", "store_other_evaluations"],
+      "tools": ["get_conditions_to_evaluate", "load_guideline_sections", "store_other_evaluations"],
       "substeps": [
         {"id": "6.1", "name": "Load misc/other conditions + candidate documents", "tools": ["get_conditions_to_evaluate"]},
-        {"id": "6.2", "name": "Store misc/other evaluations", "tools": ["store_other_evaluations"]},
-        {"id": "6.3", "name": "Save step report", "tools": ["save_step_report"]}
+        {"id": "6.2", "name": "Load guideline sections (if needed)", "tools": ["load_guideline_sections"]},
+        {"id": "6.3", "name": "Store misc/other evaluations", "tools": ["store_other_evaluations"]},
+        {"id": "6.4", "name": "Save step report", "tools": ["save_step_report"]}
       ]
     },
     {

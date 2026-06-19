@@ -88,6 +88,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_02_income.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "load_guideline_sections",
                         "store_income_evaluations"
                 ],
                 "substeps": [
@@ -100,13 +101,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "2.2",
+                                "name": "Load income guideline sections (if needed)",
+                                "tools": [
+                                        "load_guideline_sections"
+                                ]
+                        },
+                        {
+                                "id": "2.3",
                                 "name": "Store income evaluations",
                                 "tools": [
                                         "store_income_evaluations"
                                 ]
                         },
                         {
-                                "id": "2.3",
+                                "id": "2.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -120,6 +128,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_03_assets.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "load_guideline_sections",
                         "store_assets_evaluations"
                 ],
                 "substeps": [
@@ -132,13 +141,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "3.2",
+                                "name": "Load asset/reserves guideline sections (if needed)",
+                                "tools": [
+                                        "load_guideline_sections"
+                                ]
+                        },
+                        {
+                                "id": "3.3",
                                 "name": "Store asset evaluations",
                                 "tools": [
                                         "store_assets_evaluations"
                                 ]
                         },
                         {
-                                "id": "3.3",
+                                "id": "3.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -152,6 +168,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_04_credit.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "load_guideline_sections",
                         "store_credit_evaluations"
                 ],
                 "substeps": [
@@ -164,13 +181,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "4.2",
+                                "name": "Load credit guideline sections (if needed)",
+                                "tools": [
+                                        "load_guideline_sections"
+                                ]
+                        },
+                        {
+                                "id": "4.3",
                                 "name": "Store credit evaluations",
                                 "tools": [
                                         "store_credit_evaluations"
                                 ]
                         },
                         {
-                                "id": "4.3",
+                                "id": "4.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -184,6 +208,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_05_property.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "load_guideline_sections",
                         "store_property_evaluations"
                 ],
                 "substeps": [
@@ -196,13 +221,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "5.2",
+                                "name": "Load property/appraisal/title/insurance guideline sections (if needed)",
+                                "tools": [
+                                        "load_guideline_sections"
+                                ]
+                        },
+                        {
+                                "id": "5.3",
                                 "name": "Store property evaluations",
                                 "tools": [
                                         "store_property_evaluations"
                                 ]
                         },
                         {
-                                "id": "5.3",
+                                "id": "5.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -216,6 +248,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_06_misc.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "load_guideline_sections",
                         "store_other_evaluations"
                 ],
                 "substeps": [
@@ -228,13 +261,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "6.2",
+                                "name": "Load guideline sections (if needed)",
+                                "tools": [
+                                        "load_guideline_sections"
+                                ]
+                        },
+                        {
+                                "id": "6.3",
                                 "name": "Store misc/other evaluations",
                                 "tools": [
                                         "store_other_evaluations"
                                 ]
                         },
                         {
-                                "id": "6.3",
+                                "id": "6.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
