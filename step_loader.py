@@ -12,6 +12,7 @@ from typing import Any
 
 from registry import (
     GENERAL_TOOL_NAMES,
+    STEP_ORDER,
     get_current_step,
     get_step_plan_file,
     get_step_tools,
@@ -19,6 +20,16 @@ from registry import (
 )
 
 PLANS_DIR = Path(__file__).parent / "plans"
+
+
+def _current_or_first_step(state: dict) -> str | None:
+    """Current step, defaulting to the first step when state hasn't set one yet.
+
+    At the very start of a run ``current_step`` is empty; without this default the
+    first step's tools/plan would never be scoped in, leaving the agent unable to
+    run intake.
+    """
+    return get_current_step(state) or (STEP_ORDER[0] if STEP_ORDER else None)
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +83,7 @@ def resolve_tools_for_step(state: dict) -> list[Any]:
     Returns only the tools relevant to the current step plus general tools.
     """
     registry = get_tool_registry()
-    current_step = get_current_step(state)
+    current_step = _current_or_first_step(state)
 
     general_tools = [registry[name] for name in GENERAL_TOOL_NAMES if name in registry]
 
@@ -97,7 +108,7 @@ def resolve_tools_for_step(state: dict) -> list[Any]:
 
 def resolve_plan_for_step(state: dict) -> str | None:
     """Plan resolver called before every LLM invocation."""
-    current_step = get_current_step(state)
+    current_step = _current_or_first_step(state)
     if not current_step:
         return None
     if is_step_skipped(current_step, state):
