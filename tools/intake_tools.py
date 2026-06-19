@@ -71,8 +71,9 @@ def parse_documents(
 ) -> Command:
     """
     Parse and normalize the rack & stack (R&S) document output (documents_json):
-    the documents the borrower submitted, already classified and OCR'd upstream.
-    Stored in state for matching and evaluation.
+    the documents the borrower submitted, already classified into a category and
+    indexed into structured extracted fields (metadata) upstream. Stored in state
+    for matching and evaluation.
     """
     s = state or {}
     raw = _loads(s.get("documents_json"), [])

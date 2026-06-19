@@ -208,28 +208,63 @@ def normalize_conditions(raw_list: Any) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Document (rack & stack output) normalization
 # ---------------------------------------------------------------------------
+#
+# Rack & stack (R&S) does NOT hand us raw OCR text. It classifies each submitted
+# document and emits a manifest where every document carries:
+#   - "category": {"category_id", "category_name", ...}   (the document type)
+#   - "metadata": {<structured extracted fields> + housekeeping}
+# The structured fields under "metadata" (minus housekeeping) are the substance we
+# reason over. Raw OCR text, when present at all, is only an optional extra.
+
+# Housekeeping keys that live under metadata but are NOT extracted entity fields.
+_DOC_META_HOUSEKEEPING = {
+    "category", "source", "confidence", "vision_check", "exceptions",
+    "group_index", "group_name", "object_name", "total_pages", "page_count",
+    "blob_id",
+}
+
+
+def _extracted_fields_from_metadata(metadata: dict) -> dict:
+    return {k: v for k, v in metadata.items() if k not in _DOC_META_HOUSEKEEPING}
 
 
 def normalize_document(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return {}
+
+    category = raw.get("category") if isinstance(raw.get("category"), dict) else {}
+    metadata = raw.get("metadata") if isinstance(raw.get("metadata"), dict) else {}
+
+    # Structured extracted fields: explicit field bag wins, else derive from metadata.
+    extracted = _first(raw, "extracted_fields", "extractedFields", "fields", "data", default=None)
+    if not isinstance(extracted, dict):
+        extracted = _extracted_fields_from_metadata(metadata)
+
+    # Document type comes from the R&S category name (with legacy aliases as fallback).
+    doc_type = _first(category, "category_name", "categoryName") or _first(
+        raw, "detected_document_type", "detectedDocumentType", "document_type",
+        "documentType", "doc_type", "type", "classification", default="",
+    )
+
+    # Raw OCR text is optional and usually absent from R&S output.
     text = _first(
         raw, "document_text", "documentText", "extracted_text", "extractedText",
         "ocr_text", "text", "fullText", "full_text", "content", default="",
     )
+
     doc = {
         "id": str(_first(raw, "id", "document_id", "documentId", "doc_id", "result_document_id", default="")),
-        "file_name": _first(raw, "file_name", "fileName", "name", "title", default="unknown"),
-        "detected_document_type": _first(
-            raw, "detected_document_type", "detectedDocumentType", "document_type",
-            "documentType", "doc_type", "type", "classification", default="",
-        ),
+        "file_name": _first(raw, "file_name", "fileName", "name", "title", default=None)
+        or metadata.get("object_name") or "unknown",
+        "detected_document_type": doc_type,
+        "category_id": _first(category, "category_id", "categoryId") or _first(raw, "category_id", default=None),
         "document_summary": _first(raw, "document_summary", "documentSummary", "summary", default=""),
+        "extracted_fields": extracted,
         "document_text": text,
-        "page_count": _first(raw, "page_count", "pageCount", "pages", default=1),
+        "page_count": _first(metadata, "total_pages", "page_count") or _first(raw, "page_count", "pageCount", "pages", default=1),
     }
     if not doc["id"]:
-        base = (doc["file_name"] or "doc")[:30]
+        base = (doc["file_name"] or doc["detected_document_type"] or "doc")[:30]
         doc["id"] = "DOC-" + re.sub(r"[^A-Za-z0-9]+", "-", base).strip("-").upper()
     return doc
 

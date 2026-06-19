@@ -2,51 +2,119 @@
   "documents": [
     {
       "id": 25988,
-      "document_type": "Earnest Money Deposit Check",
-      "summary": "Copy of earnest money deposit check #1043 for $5,000 payable to ABC Title.",
-      "extracted_text": "PERSONAL CHECK\nPay to the order of: ABC Title Company\nAmount: $5,000.00\nMemo: Earnest Money Deposit - 742 Evergreen Terrace\nDate: 10/15/2025\nDrawer: John Q Borrower\nCheck #1043"
+      "category": { "category_id": 1080, "category_name": "Earnest Money Deposit Check" },
+      "metadata": {
+        "payee": "ABC Title Company",
+        "amount": "$5,000.00",
+        "check_number": "1043",
+        "date": "10/15/2025",
+        "drawer": "John Q Borrower",
+        "memo": "Earnest Money Deposit - 742 Evergreen Terrace",
+        "total_pages": 1,
+        "confidence": 0.98
+      }
     },
     {
       "id": 25989,
-      "document_type": "Title Receipt",
-      "summary": "Title company receipt acknowledging earnest money deposit of $5,000.",
-      "extracted_text": "ABC TITLE COMPANY\nRECEIPT\nReceived from John Q Borrower the sum of $5,000.00\nAs Earnest Money Deposit for property at 742 Evergreen Terrace\nDate: 10/16/2025"
+      "category": { "category_id": 1081, "category_name": "Title Receipt" },
+      "metadata": {
+        "title_company": "ABC Title Company",
+        "received_from": "John Q Borrower",
+        "amount": "$5,000.00",
+        "property_address": "742 Evergreen Terrace",
+        "date": "10/16/2025",
+        "total_pages": 1,
+        "confidence": 0.97
+      }
     },
     {
       "id": 26015,
-      "document_type": "Driver License",
-      "summary": "Legible color copy of state driver license for John Q Borrower.",
-      "extracted_text": "STATE OF ALABAMA DRIVER LICENSE\nName: John Q Borrower\nDOB: 03/12/1980\nAddress: 742 Evergreen Terrace, Bradenton FL\nLicense No: 7654321\nIssued: 02/01/2023  Expires: 03/12/2031\nImage clear and fully legible."
+      "category": { "category_id": 844, "category_name": "Driver License" },
+      "metadata": {
+        "name": "John Q Borrower",
+        "dob": "03/12/1980",
+        "address": "742 Evergreen Terrace, Bradenton FL",
+        "license_number": "7654321",
+        "issue_date": "02/01/2023",
+        "expiration_date": "03/12/2031",
+        "legible": true,
+        "total_pages": 1,
+        "confidence": 0.95
+      }
     },
     {
       "id": 26022,
-      "document_type": "Flood Certification",
-      "summary": "Life-of-loan flood certification for the subject property; zone X (not in SFHA).",
-      "extracted_text": "STANDARD FLOOD HAZARD DETERMINATION\nProperty: 742 Evergreen Terrace\nFlood Zone: X\nLife of Loan: YES\nNFIP Community Participating: Yes\nDetermination Date: 10/20/2025\nProvider: CoreLogic Flood Services"
+      "category": { "category_id": 1117, "category_name": "Flood Certification" },
+      "metadata": {
+        "property_address": "742 Evergreen Terrace",
+        "flood_zone": "X",
+        "in_sfha": false,
+        "life_of_loan": true,
+        "nfip_community_participating": true,
+        "determination_date": "10/20/2025",
+        "provider": "CoreLogic Flood Services",
+        "total_pages": 1,
+        "confidence": 0.99
+      }
     },
     {
       "id": 26030,
-      "document_type": "Homeowners Insurance Declaration",
-      "summary": "Hazard insurance declaration page; coverage $410,000; wind/hail included; mortgagee clause not shown.",
-      "extracted_text": "HOMEOWNERS POLICY DECLARATIONS\nInsured: John Q Borrower\nProperty: 742 Evergreen Terrace\nDwelling Coverage A: $410,000\nWind/Hail: INCLUDED\nPolicy Period: 10/30/2025 - 10/30/2026\nEffective Date: 10/30/2025\nLoss Payee / Mortgagee Clause: (not listed on this page)"
+      "category": { "category_id": 1479, "category_name": "Homeowners Insurance Declaration" },
+      "metadata": {
+        "insured": "John Q Borrower",
+        "property_address": "742 Evergreen Terrace",
+        "dwelling_coverage": "$410,000",
+        "wind_hail": "Included",
+        "policy_period": "10/30/2025 - 10/30/2026",
+        "effective_date": "10/30/2025",
+        "mortgagee_clause": null,
+        "loss_payee": null,
+        "total_pages": 1,
+        "confidence": 0.9
+      }
     },
     {
       "id": 26013,
-      "document_type": "Title Commitment",
-      "summary": "Preliminary title commitment with 24-month chain of title for subject property.",
-      "extracted_text": "PRELIMINARY TITLE COMMITMENT\nSchedule A: Proposed Insured - Lender\nProperty: 742 Evergreen Terrace\nVesting: John Q Borrower, a married man\nChain of Title (24 months): 11/2023 deed from prior owner; no intervening transfers.\nSchedule B exceptions listed."
+      "category": { "category_id": 828, "category_name": "Title Commitment" },
+      "metadata": {
+        "proposed_insured": "Lender",
+        "property_address": "742 Evergreen Terrace",
+        "vesting": "John Q Borrower, a married man",
+        "chain_of_title_months": 24,
+        "intervening_transfers": false,
+        "schedule_b_exceptions": true,
+        "total_pages": 12,
+        "confidence": 0.92
+      }
     },
     {
       "id": 26020,
-      "document_type": "Property Tax Certificate",
-      "summary": "County property tax certificate with current-year bill and disbursement dates.",
-      "extracted_text": "COUNTY TAX CERTIFICATE\nParcel: 742 Evergreen Terrace\n2025 Annual Tax: $4,120.00\nDisbursement: due 11/01/2025, delinquent 12/31/2025\nStatus: Unpaid (current year)"
+      "category": { "category_id": 522, "category_name": "Property Tax Certificate" },
+      "metadata": {
+        "parcel_address": "742 Evergreen Terrace",
+        "annual_tax_2025": "$4,120.00",
+        "due_date": "11/01/2025",
+        "delinquent_date": "12/31/2025",
+        "status": "Unpaid (current year)",
+        "total_pages": 1,
+        "confidence": 0.96
+      }
     },
     {
       "id": 26042,
-      "document_type": "Operating Agreement",
-      "summary": "LLC operating agreement showing borrower holds 50% membership interest.",
-      "extracted_text": "OPERATING AGREEMENT OF SUNSET HOLDINGS LLC\nMembers:\n  John Q Borrower - 50% membership interest\n  Jane A Partner - 50% membership interest\nEffective Date: 01/01/2019\nState of Formation: Florida\nManaging Member: John Q Borrower"
+      "category": { "category_id": 504, "category_name": "Operating Agreement" },
+      "metadata": {
+        "entity_name": "Sunset Holdings LLC",
+        "members": [
+          { "name": "John Q Borrower", "ownership_percent": 50 },
+          { "name": "Jane A Partner", "ownership_percent": 50 }
+        ],
+        "managing_member": "John Q Borrower",
+        "effective_date": "01/01/2019",
+        "state_of_formation": "Florida",
+        "total_pages": 6,
+        "confidence": 0.93
+      }
     }
   ]
 }

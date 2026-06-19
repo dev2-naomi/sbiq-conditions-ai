@@ -43,8 +43,9 @@ STEP_07  Aggregation & HIL Packaging ─ Merge verdicts, derive status, flag rev
 - **Authoritative pre-links**: each condition's `result_document_ids` (the documents
   the borrower submitted for it) are treated as authoritative candidate links in
   STEP_01; deterministic keyword matching and LLM triage only supplement them.
-- **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over document text
-  rather than hard-coded checks, mirroring `predicted-conditions`.
+- **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over each document's
+  **structured extracted fields** (the R&S output) rather than hard-coded checks,
+  mirroring `predicted-conditions`.
 - **Guidelines as a scoped reference**: during evaluation the agent can call
   `load_guideline_sections` to consult `data/guidelines.md` (NQMF) — strictly to
   clarify a condition's acceptance criteria or document-validity standards. The
@@ -67,7 +68,7 @@ Passed as raw strings (the agent parses them itself):
 | Input | Format | Description |
 |-------|--------|-------------|
 | `conditions_json` | JSON | Conditions to evaluate, in the LOS/Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`) |
-| `documents_json` | JSON | Rack & stack (R&S) output — the documents the borrower submitted (id, type, summary, extracted text) |
+| `documents_json` | JSON | Rack & stack (R&S) output — submitted documents as a manifest: each has `id`, a `category` (type) and `metadata` of **structured extracted fields** (no raw OCR text) |
 | `eligibility_json` | JSON (optional) | Eligibility engine output (`application_data`, `eligible_programs`) |
 | `loan_file_xml` | MISMO XML (optional) | Loan scenario for additional context |
 
@@ -95,6 +96,12 @@ POST /threads/{thread_id}/runs
 The agent auto-generates its own instruction prompt and defaults to `STEP_00`, so
 callers only need to send data. The final result is in thread state under
 `final_output`.
+
+> **Building a UI / calling this from a client?** See
+> [`docs/FRONTEND_INTEGRATION.md`](docs/FRONTEND_INTEGRATION.md) for the full
+> request/response contract, TypeScript types, invocation options (LangGraph SDK /
+> REST / backend wrapper), and rendering guidance. Ready-to-use samples live in
+> [`data/samples/`](data/samples/).
 
 ## Output
 
@@ -170,9 +177,13 @@ sbiq-conditions-ai/
 │       ├── evaluation.py     # Category context builder + evaluation storage
 │       └── guidelines.py     # NQMF guidelines parser (section lookup)
 │
+├── docs/
+│   └── FRONTEND_INTEGRATION.md # Request/response contract, TS types, invocation + UI guidance
+│
 ├── data/
 │   ├── guidelines.md         # NQMF underwriting guidelines (evaluation reference)
-│   └── input/                # Sample conditions (Encompass shape), R&S documents, eligibility
+│   ├── input/                # Sample conditions (Encompass shape), R&S documents, eligibility
+│   └── samples/              # Packaged API request body + representative final_output
 ```
 
 ## Run Locally

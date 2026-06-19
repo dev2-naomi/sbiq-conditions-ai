@@ -7,14 +7,17 @@ Evaluate whether the candidate documents satisfy each **income** condition.
 ## Actions
 
 1. Call `get_conditions_to_evaluate` with `category="income"`. You receive each
-   income condition and the full text of its candidate documents.
+   income condition and its candidate documents — each candidate's `document_type`
+   and its `extracted_fields` (the structured fields rack & stack pulled from the
+   document; raw text is included only if it happens to be available).
 2. If `condition_count` is 0, immediately call `save_step_report` and advance.
 3. If a condition is ambiguous or you need the standard a document must meet
    (e.g. how many months of bank statements, which tax years/schedules, signed
    P&L recency), call `load_guideline_sections` for the relevant section(s) —
    see "Guidelines (reference)" below.
-4. For each condition, reason as a senior underwriter over the document text and
-   produce one evaluation. Record any sections you relied on in `guideline_refs`.
+4. For each condition, reason as a senior underwriter over the documents'
+   `extracted_fields` (and text if available) and produce one evaluation. Record
+   any sections you relied on in `guideline_refs`.
 5. Call `store_income_evaluations` with the list of evaluations.
 6. Call `save_step_report` for `STEP_02`.
 

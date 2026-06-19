@@ -1,0 +1,160 @@
+{
+  "scenario_summary": {
+    "loan": {
+      "loan_id": 1042,
+      "borrower_name": "John Q Borrower",
+      "property_state": "FL",
+      "property_city": "Bradenton",
+      "loan_amount": 420000,
+      "ltv": 80.0,
+      "fico": 728
+    },
+    "eligible_programs": ["Flex Select"],
+    "counts": {
+      "conditions": 5,
+      "submitted_documents": 5
+    },
+    "conditions_by_group": {
+      "assets": 2,
+      "credit": 1,
+      "property": 1,
+      "income": 1
+    },
+    "document_types": {
+      "Earnest Money Deposit Check": 1,
+      "Title Receipt": 1,
+      "Driver License": 1,
+      "Homeowners Insurance Declaration": 1,
+      "Operating Agreement": 1
+    }
+  },
+  "evaluations": [
+    {
+      "condition_id": "5601",
+      "category": "assets",
+      "result": "Unfulfilled",
+      "confidence": 0.0,
+      "short_reason": "No candidate evidence was matched to this condition.",
+      "satisfied_points": [],
+      "missing_or_unclear_points": [
+        "No asset statement(s) submitted to support funds to close and reserves."
+      ],
+      "evidence_used": [],
+      "recommended_next_action": "Request the most recent asset statement(s) covering at least $132,314.27 including reserves.",
+      "guideline_refs": [],
+      "label": "CORR:  Assets:",
+      "body": "Provide most recent asset statement(s) to support sufficient funds to close and reserves. Require a total of $132,314.27 which includes $13,163.46 in reserves (which do not have to be liquid).  **The provide EVOD is acceptable but expires in 3 business days and prior to our closing.",
+      "priority": "normal",
+      "eval_group": "assets",
+      "overall_status": "unfulfilled",
+      "needs_human_review": true
+    },
+    {
+      "condition_id": "5660",
+      "category": "property",
+      "result": "Partially Fulfilled",
+      "confidence": 70.0,
+      "short_reason": "Hazard dec page shows sufficient coverage and wind/hail, but the mortgagee clause is not listed.",
+      "satisfied_points": [
+        "Dwelling coverage $410,000 supports the loan amount",
+        "Wind/Hail included",
+        "Effective date within range"
+      ],
+      "missing_or_unclear_points": [
+        "Loss payee / mortgagee clause (Lender's name, ISAOA, loan number) not shown on the page provided"
+      ],
+      "evidence_used": ["26030"],
+      "recommended_next_action": "Request an updated declaration page reflecting the lender's mortgagee clause with the loan number.",
+      "guideline_refs": ["PROPERTY INSURANCE"],
+      "label": "CORR:  Property: Insurance - Hazard",
+      "body": "**10/24 (BR) EFFECTIVE DATE MUST BE WITHIN 15 DAYS OF NOTE DATE AS THIS IS A PURCHASE** Provide evidence of hazard insurance with sufficient coverage to support lesser of the loan amount or replacement cost. Wind/Hail must be included, or a separate policy required. Loss payee to reflect: Lender's Name, ISAOA with loan number and endorsement(s).",
+      "priority": "normal",
+      "eval_group": "property",
+      "overall_status": "partially_fulfilled",
+      "needs_human_review": true
+    },
+    {
+      "condition_id": "5610",
+      "category": "assets",
+      "result": "Fulfilled",
+      "confidence": 95.0,
+      "short_reason": "Earnest money check and matching title receipt for $5,000 were both submitted.",
+      "satisfied_points": [
+        "Copy of EMD check #1043 for $5,000 payable to ABC Title",
+        "Title company receipt acknowledging the same $5,000 deposit"
+      ],
+      "missing_or_unclear_points": [],
+      "evidence_used": ["25988", "25989"],
+      "recommended_next_action": "None — condition satisfied.",
+      "guideline_refs": [],
+      "label": "CORR:  Assets - Earnest Money Deposit",
+      "body": "*** (LA) 10/27 - Provide a copy of the check or title receipt. ",
+      "priority": "normal",
+      "eval_group": "assets",
+      "overall_status": "fulfilled",
+      "needs_human_review": false
+    },
+    {
+      "condition_id": "5652",
+      "category": "credit",
+      "result": "Fulfilled",
+      "confidence": 92.0,
+      "short_reason": "A legible driver license copy was submitted for the borrower.",
+      "satisfied_points": [
+        "State driver license, clear and fully legible",
+        "Name matches borrower of record"
+      ],
+      "missing_or_unclear_points": [],
+      "evidence_used": ["26015"],
+      "recommended_next_action": "None — condition satisfied.",
+      "guideline_refs": [],
+      "label": "CORR:  Credit: Primary Identification",
+      "body": "Provide a legible copy of Driver's License or other primary form of ID. Cut off...need better picture / copy of license",
+      "priority": "normal",
+      "eval_group": "credit",
+      "overall_status": "fulfilled",
+      "needs_human_review": false
+    },
+    {
+      "condition_id": "5659",
+      "category": "income",
+      "result": "Fulfilled",
+      "confidence": 90.0,
+      "short_reason": "Operating agreement shows the borrower holds 50% membership interest, exceeding the 25% minimum.",
+      "satisfied_points": [
+        "Operating agreement lists John Q Borrower at 50% membership interest",
+        "50% >= the required 25% ownership threshold"
+      ],
+      "missing_or_unclear_points": [],
+      "evidence_used": ["26042"],
+      "recommended_next_action": "None — condition satisfied.",
+      "guideline_refs": ["FULL DOCUMENTATION"],
+      "label": "Income:  NonQM -Verify minimum 25% ownership interest in the Business",
+      "body": "Income: Verify that the borrower is at least 25% owner of the business by providing one of the following: CPA letter, operating agreement, or equivalent reflecting the borrower's ownership percentage.",
+      "priority": "normal",
+      "eval_group": "income",
+      "overall_status": "fulfilled",
+      "needs_human_review": false
+    }
+  ],
+  "stats": {
+    "total_conditions": 5,
+    "needs_human_review": 2,
+    "by_result": {
+      "Unfulfilled": 1,
+      "Partially Fulfilled": 1,
+      "Fulfilled": 3
+    },
+    "by_overall_status": {
+      "unfulfilled": 1,
+      "partially_fulfilled": 1,
+      "fulfilled": 3
+    },
+    "by_category": {
+      "assets": 2,
+      "property": 1,
+      "credit": 1,
+      "income": 1
+    }
+  }
+}

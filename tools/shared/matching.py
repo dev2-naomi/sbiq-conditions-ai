@@ -61,10 +61,17 @@ def _tokens(text: str) -> set[str]:
 
 
 def _doc_blob(doc: dict) -> str:
-    return " ".join(
-        str(doc.get(k, ""))
-        for k in ("file_name", "detected_document_type", "document_summary")
-    ).lower()
+    """Searchable text for a document: type/summary + structured extracted fields.
+
+    R&S gives us the document type (category name) and structured extracted fields
+    rather than raw OCR, so the blob is built from those (field keys + values)."""
+    parts = [str(doc.get(k, "")) for k in ("file_name", "detected_document_type", "document_summary")]
+    fields = doc.get("extracted_fields") or {}
+    if isinstance(fields, dict):
+        for k, v in fields.items():
+            parts.append(str(k))
+            parts.append(str(v))
+    return " ".join(parts).lower()
 
 
 def score_pair(condition: dict, doc: dict) -> tuple[float, str]:

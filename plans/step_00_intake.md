@@ -13,7 +13,8 @@ extract or classify documents here.
   (`{"condition": {"data": {"Title","Description","Category",...},
   "result_document_ids": [...]}}`).
 - `documents_json` — rack & stack (R&S) output: the documents the borrower
-  submitted, already classified and OCR'd.
+  submitted, each classified into a `category` (type) and indexed into structured
+  extracted fields under `metadata` (raw OCR text is not provided).
 - `loan_file_xml` — MISMO XML loan scenario (optional context).
 - `eligibility_json` — eligibility engine output (optional context).
 
@@ -22,7 +23,8 @@ extract or classify documents here.
 1. Call `parse_conditions`. Normalizes category, assigns an evaluation group
    (income / assets / credit / property / other), and preserves each condition's
    `result_document_ids` (the documents already submitted for it).
-2. Call `parse_documents`. Normalizes the R&S documents (id, type, summary, text).
+2. Call `parse_documents`. Normalizes the R&S documents (id, type from `category`,
+   and `extracted_fields` from `metadata`).
 3. Call `build_eval_scenario`. Summarizes counts, group breakdown, document types,
    eligible programs, and loan-level context (from eligibility `application_data`
    and the MISMO XML).

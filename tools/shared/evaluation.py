@@ -27,8 +27,10 @@ _TEXT_CAP = 8000  # cap document text per doc to keep context bounded
 
 def build_category_context(state: dict, eval_group: str) -> dict:
     """
-    Assemble the conditions belonging to `eval_group` together with the full
-    text of each condition's candidate documents.
+    Assemble the conditions belonging to `eval_group` together with their
+    candidate documents. Each candidate carries the document type and its
+    structured extracted fields (the R&S output), plus raw OCR text only when it
+    happens to be available.
     """
     conditions: list[dict] = state.get("conditions", []) or []
     documents: list[dict] = state.get("evidence", []) or []
@@ -47,18 +49,19 @@ def build_category_context(state: dict, eval_group: str) -> dict:
             doc = docs_by_id.get(eid)
             if not doc:
                 continue
-            text = doc.get("document_text", "") or ""
-            if len(text) > _TEXT_CAP:
-                text = text[:_TEXT_CAP] + "...[truncated]"
-            ev_blocks.append({
+            block = {
                 "evidence_id": doc.get("id"),
-                "file_name": doc.get("file_name"),
-                "detected_document_type": doc.get("detected_document_type"),
+                "document_type": doc.get("detected_document_type"),
                 "document_summary": doc.get("document_summary"),
-                "document_text": text,
+                "extracted_fields": doc.get("extracted_fields") or {},
                 "match_confidence": cand.get("confidence") if isinstance(cand, dict) else None,
                 "match_source": cand.get("source") if isinstance(cand, dict) else None,
-            })
+            }
+            # Include raw OCR text only when present (R&S usually omits it).
+            text = doc.get("document_text", "") or ""
+            if text:
+                block["document_text"] = text[:_TEXT_CAP] + ("...[truncated]" if len(text) > _TEXT_CAP else "")
+            ev_blocks.append(block)
         context_conditions.append({
             "condition_id": cid,
             "label": cond.get("label"),

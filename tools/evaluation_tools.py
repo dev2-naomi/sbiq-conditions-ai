@@ -23,8 +23,10 @@ def get_conditions_to_evaluate(
     state: Annotated[dict, InjectedState] = None,
 ) -> dict:
     """
-    Load the conditions for an evaluation group together with the full text of
-    each condition's candidate documents, so you can decide fulfillment.
+    Load the conditions for an evaluation group together with each condition's
+    candidate documents — every candidate's document_type and its structured
+    extracted_fields (and raw text only if available) — so you can decide
+    fulfillment.
 
     Args:
         category: the evaluation group — one of "income", "assets", "credit",
