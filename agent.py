@@ -73,10 +73,11 @@ def _last_value(old: Any, new: Any) -> Any:  # noqa: ARG001
 
 
 class EvaluatorState(TypedDict, total=False):
-    # ---- Input fields ----
-    conditions_json: str       # Raw JSON list of conditions to evaluate
-    evidence_json: str         # Raw JSON list of evidence documents
-    loan_json: str             # Optional raw JSON loan scenario / borrower context
+    # ---- Input fields (preconditions-style; this engine runs AFTER preconditions) ----
+    conditions_json: str       # Raw JSON list of conditions to evaluate (LOS/Encompass shape)
+    documents_json: str        # Rack & stack (R&S) output — documents the borrower submitted
+    loan_file_xml: str         # MISMO XML loan scenario (optional context)
+    eligibility_json: str      # Eligibility engine output (optional context)
     env: str                   # "Test" | "Prod"
 
     # ---- Message history ----
@@ -117,22 +118,21 @@ _llm = ChatAnthropic(**_llm_kwargs)
 # ---------------------------------------------------------------------------
 
 _DEFAULT_INITIAL_PROMPT = (
-    "Execute the FULL Conditions Evaluation workflow from STEP_00 through STEP_08.\n\n"
+    "Execute the FULL Conditions Evaluation workflow from STEP_00 through STEP_07.\n\n"
     "You MUST complete ALL steps in sequence. Do NOT stop after a single step.\n"
     "Do NOT output a summary between steps — just call the tools, then call "
     "save_step_report to advance.\n\n"
     "Step sequence:\n"
-    "  STEP_00: parse_conditions, parse_evidence, build_eval_scenario\n"
-    "  STEP_01: get_evidence_for_extraction, store_evidence_classifications\n"
-    "  STEP_02: deterministic_candidate_match, store_candidate_matches\n"
-    "  STEP_03: get_conditions_to_evaluate('income'), store_income_evaluations\n"
-    "  STEP_04: get_conditions_to_evaluate('assets'), store_assets_evaluations\n"
-    "  STEP_05: get_conditions_to_evaluate('credit'), store_credit_evaluations\n"
-    "  STEP_06: get_conditions_to_evaluate('property'), store_property_evaluations\n"
-    "  STEP_07: get_conditions_to_evaluate('title_compliance'), store_title_compliance_evaluations\n"
-    "  STEP_08: merge_evaluations, generate_final_output\n\n"
-    "For STEP_03 through STEP_07: first load the category's conditions and their "
-    "candidate evidence, then reason as a senior underwriter over the evidence text "
+    "  STEP_00: parse_conditions, parse_documents, build_eval_scenario\n"
+    "  STEP_01: deterministic_candidate_match, store_candidate_matches\n"
+    "  STEP_02: get_conditions_to_evaluate('income'), store_income_evaluations\n"
+    "  STEP_03: get_conditions_to_evaluate('assets'), store_assets_evaluations\n"
+    "  STEP_04: get_conditions_to_evaluate('credit'), store_credit_evaluations\n"
+    "  STEP_05: get_conditions_to_evaluate('property'), store_property_evaluations\n"
+    "  STEP_06: get_conditions_to_evaluate('other'), store_other_evaluations\n"
+    "  STEP_07: merge_evaluations, generate_final_output\n\n"
+    "For STEP_02 through STEP_06: first load the category's conditions and their "
+    "candidate documents, then reason as a senior underwriter over the document text "
     "to decide fulfillment for each condition. Produce one evaluation per condition "
     "with result, confidence, satisfied_points, missing_or_unclear_points, and "
     "recommended_next_action.\n"

@@ -12,11 +12,11 @@ from typing import Any
 STEP_CONFIG: dict[str, dict[str, Any]] = {
         "STEP_00": {
                 "name": "Intake & Normalization",
-                "description": "Parse the conditions list, the evidence document list, and the optional loan scenario. Normalize categories and build an evaluation scenario summary.",
+                "description": "Parse the conditions, the submitted documents (rack & stack output), the loan scenario (MISMO XML), and the eligibility output. Normalize categories and build an evaluation scenario summary.",
                 "plan_file": "step_00_intake.md",
                 "tools": [
                         "parse_conditions",
-                        "parse_evidence",
+                        "parse_documents",
                         "build_eval_scenario"
                 ],
                 "substeps": [
@@ -29,9 +29,9 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "0.2",
-                                "name": "Parse evidence documents",
+                                "name": "Parse submitted documents (R&S output)",
                                 "tools": [
-                                        "parse_evidence"
+                                        "parse_documents"
                                 ]
                         },
                         {
@@ -51,26 +51,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_01": {
-                "name": "Document Extraction & Classification",
-                "description": "For each evidence document, confirm/derive its document type and a short summary so downstream matching and evaluation can reason over it (rack & stack).",
-                "plan_file": "step_01_extraction.md",
+                "name": "Candidate Matching (Cheap Filter)",
+                "description": "Link conditions to the documents that may satisfy them. Pre-links from each condition's result_document_ids are authoritative; a deterministic keyword pass and LLM triage supplement them.",
+                "plan_file": "step_01_candidate_matching.md",
                 "tools": [
-                        "get_evidence_for_extraction",
-                        "store_evidence_classifications"
+                        "deterministic_candidate_match",
+                        "store_candidate_matches"
                 ],
                 "substeps": [
                         {
                                 "id": "1.1",
-                                "name": "Load evidence needing classification",
+                                "name": "Deterministic candidate match (result_document_ids + keywords)",
                                 "tools": [
-                                        "get_evidence_for_extraction"
+                                        "deterministic_candidate_match"
                                 ]
                         },
                         {
                                 "id": "1.2",
-                                "name": "Store evidence classifications",
+                                "name": "Store final candidate map",
                                 "tools": [
-                                        "store_evidence_classifications"
+                                        "store_candidate_matches"
                                 ]
                         },
                         {
@@ -83,26 +83,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_02": {
-                "name": "Candidate Matching (Cheap Filter)",
-                "description": "Triage which evidence documents might satisfy which conditions. Run a deterministic category/keyword match, then LLM triage, producing a condition->evidence candidate map.",
-                "plan_file": "step_02_candidate_matching.md",
+                "name": "Income Condition Evaluation",
+                "description": "Deep fulfillment evaluation for income-category conditions against their candidate documents.",
+                "plan_file": "step_02_income.md",
                 "tools": [
-                        "deterministic_candidate_match",
-                        "store_candidate_matches"
+                        "get_conditions_to_evaluate",
+                        "store_income_evaluations"
                 ],
                 "substeps": [
                         {
                                 "id": "2.1",
-                                "name": "Deterministic candidate match",
+                                "name": "Load income conditions + candidate documents",
                                 "tools": [
-                                        "deterministic_candidate_match"
+                                        "get_conditions_to_evaluate"
                                 ]
                         },
                         {
                                 "id": "2.2",
-                                "name": "Store LLM candidate matches",
+                                "name": "Store income evaluations",
                                 "tools": [
-                                        "store_candidate_matches"
+                                        "store_income_evaluations"
                                 ]
                         },
                         {
@@ -115,26 +115,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_03": {
-                "name": "Income Condition Evaluation",
-                "description": "Deep fulfillment evaluation for income-category conditions against their candidate evidence.",
-                "plan_file": "step_03_income.md",
+                "name": "Assets & Reserves Condition Evaluation",
+                "description": "Deep fulfillment evaluation for asset/reserves-category conditions against their candidate documents.",
+                "plan_file": "step_03_assets.md",
                 "tools": [
                         "get_conditions_to_evaluate",
-                        "store_income_evaluations"
+                        "store_assets_evaluations"
                 ],
                 "substeps": [
                         {
                                 "id": "3.1",
-                                "name": "Load income conditions + candidate evidence",
+                                "name": "Load asset conditions + candidate documents",
                                 "tools": [
                                         "get_conditions_to_evaluate"
                                 ]
                         },
                         {
                                 "id": "3.2",
-                                "name": "Store income evaluations",
+                                "name": "Store asset evaluations",
                                 "tools": [
-                                        "store_income_evaluations"
+                                        "store_assets_evaluations"
                                 ]
                         },
                         {
@@ -147,26 +147,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_04": {
-                "name": "Assets & Reserves Condition Evaluation",
-                "description": "Deep fulfillment evaluation for asset/reserves-category conditions against their candidate evidence.",
-                "plan_file": "step_04_assets.md",
+                "name": "Credit Condition Evaluation",
+                "description": "Deep fulfillment evaluation for credit-category conditions (including identity, housing history, undisclosed property) against their candidate documents.",
+                "plan_file": "step_04_credit.md",
                 "tools": [
                         "get_conditions_to_evaluate",
-                        "store_assets_evaluations"
+                        "store_credit_evaluations"
                 ],
                 "substeps": [
                         {
                                 "id": "4.1",
-                                "name": "Load asset conditions + candidate evidence",
+                                "name": "Load credit conditions + candidate documents",
                                 "tools": [
                                         "get_conditions_to_evaluate"
                                 ]
                         },
                         {
                                 "id": "4.2",
-                                "name": "Store asset evaluations",
+                                "name": "Store credit evaluations",
                                 "tools": [
-                                        "store_assets_evaluations"
+                                        "store_credit_evaluations"
                                 ]
                         },
                         {
@@ -179,26 +179,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_05": {
-                "name": "Credit Condition Evaluation",
-                "description": "Deep fulfillment evaluation for credit-category conditions against their candidate evidence.",
-                "plan_file": "step_05_credit.md",
+                "name": "Property Condition Evaluation",
+                "description": "Deep fulfillment evaluation for property-category conditions (appraisal, title, insurance, taxes, purchase agreement, flood) against their candidate documents.",
+                "plan_file": "step_05_property.md",
                 "tools": [
                         "get_conditions_to_evaluate",
-                        "store_credit_evaluations"
+                        "store_property_evaluations"
                 ],
                 "substeps": [
                         {
                                 "id": "5.1",
-                                "name": "Load credit conditions + candidate evidence",
+                                "name": "Load property conditions + candidate documents",
                                 "tools": [
                                         "get_conditions_to_evaluate"
                                 ]
                         },
                         {
                                 "id": "5.2",
-                                "name": "Store credit evaluations",
+                                "name": "Store property evaluations",
                                 "tools": [
-                                        "store_credit_evaluations"
+                                        "store_property_evaluations"
                                 ]
                         },
                         {
@@ -211,26 +211,26 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_06": {
-                "name": "Property & Appraisal Condition Evaluation",
-                "description": "Deep fulfillment evaluation for property/appraisal/collateral-category conditions against their candidate evidence.",
-                "plan_file": "step_06_property.md",
+                "name": "Misc & Other Condition Evaluation",
+                "description": "Deep fulfillment evaluation for miscellaneous/other-category conditions against their candidate documents.",
+                "plan_file": "step_06_misc.md",
                 "tools": [
                         "get_conditions_to_evaluate",
-                        "store_property_evaluations"
+                        "store_other_evaluations"
                 ],
                 "substeps": [
                         {
                                 "id": "6.1",
-                                "name": "Load property conditions + candidate evidence",
+                                "name": "Load misc/other conditions + candidate documents",
                                 "tools": [
                                         "get_conditions_to_evaluate"
                                 ]
                         },
                         {
                                 "id": "6.2",
-                                "name": "Store property evaluations",
+                                "name": "Store misc/other evaluations",
                                 "tools": [
-                                        "store_property_evaluations"
+                                        "store_other_evaluations"
                                 ]
                         },
                         {
@@ -243,62 +243,30 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_07": {
-                "name": "Title, Insurance, Compliance & Identity Evaluation",
-                "description": "Deep fulfillment evaluation for title, insurance, compliance, identity, and other remaining-category conditions against their candidate evidence.",
-                "plan_file": "step_07_title_compliance.md",
-                "tools": [
-                        "get_conditions_to_evaluate",
-                        "store_title_compliance_evaluations"
-                ],
-                "substeps": [
-                        {
-                                "id": "7.1",
-                                "name": "Load remaining conditions + candidate evidence",
-                                "tools": [
-                                        "get_conditions_to_evaluate"
-                                ]
-                        },
-                        {
-                                "id": "7.2",
-                                "name": "Store title/compliance evaluations",
-                                "tools": [
-                                        "store_title_compliance_evaluations"
-                                ]
-                        },
-                        {
-                                "id": "7.3",
-                                "name": "Save step report",
-                                "tools": [
-                                        "save_step_report"
-                                ]
-                        }
-                ]
-        },
-        "STEP_08": {
                 "name": "Aggregation & Human-in-the-Loop Packaging",
                 "description": "Merge all per-condition evaluations, normalize verdicts, derive overall status, flag low-confidence/ambiguous items for human review, compute stats, and assemble the final output.",
-                "plan_file": "step_08_aggregation.md",
+                "plan_file": "step_07_aggregation.md",
                 "tools": [
                         "merge_evaluations",
                         "generate_final_output"
                 ],
                 "substeps": [
                         {
-                                "id": "8.1",
+                                "id": "7.1",
                                 "name": "Merge & normalize all evaluations",
                                 "tools": [
                                         "merge_evaluations"
                                 ]
                         },
                         {
-                                "id": "8.2",
+                                "id": "7.2",
                                 "name": "Generate final output",
                                 "tools": [
                                         "generate_final_output"
                                 ]
                         },
                         {
-                                "id": "8.3",
+                                "id": "7.3",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -317,8 +285,7 @@ STEP_ORDER: list[str] = [
         "STEP_04",
         "STEP_05",
         "STEP_06",
-        "STEP_07",
-        "STEP_08"
+        "STEP_07"
 ]
 
 

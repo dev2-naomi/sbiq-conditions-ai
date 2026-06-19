@@ -1,4 +1,4 @@
-# STEP_08 — Aggregation & Human-in-the-Loop Packaging
+# STEP_07 — Aggregation & Human-in-the-Loop Packaging
 
 ## Role
 
@@ -8,8 +8,8 @@ status per condition, and flag items that need human review.
 ## Actions
 
 1. Call `merge_evaluations`. This:
-   - flattens evaluations from steps 03–07,
-   - back-fills any condition that was never evaluated (no matched evidence) as
+   - flattens evaluations from steps 02–06,
+   - back-fills any condition that was never evaluated (no matched documents) as
      **Unfulfilled / needs human review**,
    - attaches `overall_status` and `needs_human_review` to each condition,
    - sorts so human-review items surface first.
@@ -17,7 +17,7 @@ status per condition, and flag items that need human review.
    flagged for review.
 2. Call `generate_final_output` to assemble the final JSON (scenario summary,
    per-condition evaluations, and stats).
-3. Call `save_step_report` for `STEP_08` with a closing summary. This is the final
+3. Call `save_step_report` for `STEP_07` with a closing summary. This is the final
    step — after saving, stop (do not call more tools).
 
 ## Quality rules

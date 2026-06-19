@@ -8,16 +8,15 @@ registry; the ToolNode receives every tool so any scoped subset can execute.
 from __future__ import annotations
 
 from tools.general import get_workflow_status, save_step_report, write_todo
-from tools.intake_tools import build_eval_scenario, parse_conditions, parse_evidence
-from tools.extraction_tools import get_evidence_for_extraction, store_evidence_classifications
+from tools.intake_tools import build_eval_scenario, parse_conditions, parse_documents
 from tools.matching_tools import deterministic_candidate_match, store_candidate_matches
 from tools.evaluation_tools import (
     get_conditions_to_evaluate,
     store_assets_evaluations,
     store_credit_evaluations,
     store_income_evaluations,
+    store_other_evaluations,
     store_property_evaluations,
-    store_title_compliance_evaluations,
 )
 from tools.aggregation_tools import generate_final_output, merge_evaluations
 
@@ -25,29 +24,27 @@ from tools.aggregation_tools import generate_final_output, merge_evaluations
 GENERAL_TOOLS = [write_todo, save_step_report, get_workflow_status]
 
 # Per-step
-STEP_00_TOOLS = [parse_conditions, parse_evidence, build_eval_scenario]
-STEP_01_TOOLS = [get_evidence_for_extraction, store_evidence_classifications]
-STEP_02_TOOLS = [deterministic_candidate_match, store_candidate_matches]
-STEP_03_TOOLS = [get_conditions_to_evaluate, store_income_evaluations]
-STEP_04_TOOLS = [get_conditions_to_evaluate, store_assets_evaluations]
-STEP_05_TOOLS = [get_conditions_to_evaluate, store_credit_evaluations]
-STEP_06_TOOLS = [get_conditions_to_evaluate, store_property_evaluations]
-STEP_07_TOOLS = [get_conditions_to_evaluate, store_title_compliance_evaluations]
-STEP_08_TOOLS = [merge_evaluations, generate_final_output]
+STEP_00_TOOLS = [parse_conditions, parse_documents, build_eval_scenario]
+STEP_01_TOOLS = [deterministic_candidate_match, store_candidate_matches]
+STEP_02_TOOLS = [get_conditions_to_evaluate, store_income_evaluations]
+STEP_03_TOOLS = [get_conditions_to_evaluate, store_assets_evaluations]
+STEP_04_TOOLS = [get_conditions_to_evaluate, store_credit_evaluations]
+STEP_05_TOOLS = [get_conditions_to_evaluate, store_property_evaluations]
+STEP_06_TOOLS = [get_conditions_to_evaluate, store_other_evaluations]
+STEP_07_TOOLS = [merge_evaluations, generate_final_output]
 
 ALL_TOOLS = [
     *GENERAL_TOOLS,
     *STEP_00_TOOLS,
     *STEP_01_TOOLS,
-    *STEP_02_TOOLS,
-    # get_conditions_to_evaluate is shared across 03-07; include once.
+    # get_conditions_to_evaluate is shared across 02-06; include once.
     get_conditions_to_evaluate,
     store_income_evaluations,
     store_assets_evaluations,
     store_credit_evaluations,
     store_property_evaluations,
-    store_title_compliance_evaluations,
-    *STEP_08_TOOLS,
+    store_other_evaluations,
+    *STEP_07_TOOLS,
 ]
 
 # De-duplicate while preserving order (some tools appear in multiple step lists).

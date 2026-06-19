@@ -1,0 +1,22 @@
+{
+  "application_data": {
+    "BorrowerName": "John Q Borrower",
+    "LoanAmount": 420000,
+    "LTV": 80.0,
+    "CLTV": 80.0,
+    "FICO": 728,
+    "City": "Bradenton",
+    "State": "FL",
+    "Occupancy": "PrimaryResidence",
+    "IncomeDocType": "BankStatement",
+    "ReservesMonths": 6
+  },
+  "eligible_programs": ["Flex Select"],
+  "program_results": [
+    {
+      "program": "Flex Select",
+      "status": "Eligible",
+      "violations": []
+    }
+  ]
+}

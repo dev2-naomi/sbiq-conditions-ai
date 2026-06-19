@@ -1,50 +1,39 @@
 """
-evaluation.py — Shared logic for the per-category evaluation steps (03-07).
+evaluation.py — Shared logic for the per-category evaluation steps (02-06).
 
 Each evaluation step is a thin wrapper: it loads the conditions for its
-evaluation group (with their candidate evidence text) and stores the LLM's
+evaluation group (with their candidate documents) and stores the LLM's
 per-condition verdicts into module_outputs under that group's key.
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from tools.shared.normalize import normalize_evaluations
 
-# Maps the evaluation-group argument to its module_outputs storage key.
-GROUP_OUTPUT_KEY = {
-    "income": "03",
-    "assets": "04",
-    "credit": "05",
-    "property": "06",
-    "title_compliance": "07",
-}
-
-# A representative canonical category for each group (used when the LLM omits it).
+# Module-output storage key per evaluation group (group name == key).
 GROUP_DEFAULT_CATEGORY = {
     "income": "income",
     "assets": "assets",
     "credit": "credit",
-    "property": "appraisal",
-    "title_compliance": "title",
+    "property": "property",
+    "other": "other",
 }
 
-_TEXT_CAP = 8000  # cap evidence text per doc to keep context bounded
+_TEXT_CAP = 8000  # cap document text per doc to keep context bounded
 
 
 def build_category_context(state: dict, eval_group: str) -> dict:
     """
     Assemble the conditions belonging to `eval_group` together with the full
-    text of each condition's candidate evidence documents.
+    text of each condition's candidate documents.
     """
     conditions: list[dict] = state.get("conditions", []) or []
-    evidence: list[dict] = state.get("evidence", []) or []
+    documents: list[dict] = state.get("evidence", []) or []
     candidate_map: dict = state.get("candidate_map", {}) or {}
-    evidence_by_id = {e.get("id"): e for e in evidence}
+    docs_by_id = {e.get("id"): e for e in documents}
 
     targets = [c for c in conditions if c.get("eval_group") == eval_group]
 
@@ -55,7 +44,7 @@ def build_category_context(state: dict, eval_group: str) -> dict:
         ev_blocks = []
         for cand in candidates:
             eid = cand.get("evidence_id") if isinstance(cand, dict) else cand
-            doc = evidence_by_id.get(eid)
+            doc = docs_by_id.get(eid)
             if not doc:
                 continue
             text = doc.get("document_text", "") or ""
@@ -68,6 +57,7 @@ def build_category_context(state: dict, eval_group: str) -> dict:
                 "document_summary": doc.get("document_summary"),
                 "document_text": text,
                 "match_confidence": cand.get("confidence") if isinstance(cand, dict) else None,
+                "match_source": cand.get("source") if isinstance(cand, dict) else None,
             })
         context_conditions.append({
             "condition_id": cid,
@@ -75,8 +65,8 @@ def build_category_context(state: dict, eval_group: str) -> dict:
             "body": cond.get("body"),
             "raw_text": cond.get("raw_text"),
             "category": cond.get("category"),
-            "priority": cond.get("priority"),
-            "candidate_evidence": ev_blocks,
+            "stage": cond.get("stage"),
+            "candidate_documents": ev_blocks,
         })
 
     return {
@@ -92,13 +82,12 @@ def store_evaluations_command(
     tool_call_id: str,
 ) -> Command:
     """Normalize and persist evaluations into the group's module_outputs slot."""
-    key = GROUP_OUTPUT_KEY.get(eval_group, "07")
     default_cat = GROUP_DEFAULT_CATEGORY.get(eval_group, "other")
     norm = normalize_evaluations(evaluations, default_category=default_cat)
 
     results = [e.get("result") for e in norm]
     return Command(update={
-        "module_outputs": {key: {"evaluations": norm, "eval_group": eval_group}},
+        "module_outputs": {eval_group: {"evaluations": norm, "eval_group": eval_group}},
         "messages": [ToolMessage(
             f"Stored {len(norm)} {eval_group} evaluation(s): {results}",
             tool_call_id=tool_call_id,

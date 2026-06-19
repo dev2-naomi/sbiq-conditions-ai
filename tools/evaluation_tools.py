@@ -1,5 +1,5 @@
 """
-evaluation_tools.py — Tools for STEP_03..STEP_07: per-category fulfillment.
+evaluation_tools.py — Tools for STEP_02..STEP_06: per-category fulfillment.
 
 `get_conditions_to_evaluate` is shared across all evaluation steps; each step
 has its own thin `store_*_evaluations` tool that enforces the correct storage
@@ -23,11 +23,11 @@ def get_conditions_to_evaluate(
 ) -> dict:
     """
     Load the conditions for an evaluation group together with the full text of
-    each condition's candidate evidence documents, so you can decide fulfillment.
+    each condition's candidate documents, so you can decide fulfillment.
 
     Args:
         category: the evaluation group — one of "income", "assets", "credit",
-                  "property", "title_compliance".
+                  "property", "other".
     """
     s = state or {}
     return build_category_context(s, (category or "").strip().lower())
@@ -72,8 +72,8 @@ def store_credit_evaluations(
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Store per-condition credit evaluations. Schema matches
-    store_income_evaluations.
+    Store per-condition credit evaluations (includes identity, housing history,
+    undisclosed property). Schema matches store_income_evaluations.
     """
     return store_evaluations_command("credit", evaluations, tool_call_id)
 
@@ -85,20 +85,20 @@ def store_property_evaluations(
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Store per-condition property/appraisal/collateral evaluations. Schema
-    matches store_income_evaluations.
+    Store per-condition property evaluations (appraisal, title, insurance, taxes,
+    purchase agreement, flood). Schema matches store_income_evaluations.
     """
     return store_evaluations_command("property", evaluations, tool_call_id)
 
 
 @tool
-def store_title_compliance_evaluations(
+def store_other_evaluations(
     evaluations: list,
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Store per-condition title/insurance/compliance/identity/other evaluations.
-    Schema matches store_income_evaluations.
+    Store per-condition miscellaneous/other evaluations. Schema matches
+    store_income_evaluations.
     """
-    return store_evaluations_command("title_compliance", evaluations, tool_call_id)
+    return store_evaluations_command("other", evaluations, tool_call_id)

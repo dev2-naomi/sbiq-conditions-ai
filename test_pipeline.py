@@ -23,17 +23,13 @@ INPUT_DIR = ROOT / "data" / "input"
 
 def build_input() -> dict:
     conditions = (INPUT_DIR / "sample_conditions.json").read_text(encoding="utf-8")
-    evidence = (INPUT_DIR / "sample_evidence.json").read_text(encoding="utf-8")
+    documents = (INPUT_DIR / "sample_documents.json").read_text(encoding="utf-8")
+    eligibility = (INPUT_DIR / "sample_eligibility.json").read_text(encoding="utf-8")
     return {
         "conditions_json": conditions,
-        "evidence_json": evidence,
-        "loan_json": json.dumps({
-            "loanNumber": "LN-2026-0001",
-            "borrowerName": "John Borrower",
-            "propertyAddress": "123 Main St",
-            "loanAmount": 400000,
-            "loanType": "Conventional",
-        }),
+        "documents_json": documents,
+        "eligibility_json": eligibility,
+        "loan_file_xml": "",
         "env": "Test",
     }
 
@@ -44,15 +40,16 @@ def run_offline() -> int:
     from tools.shared.normalize import (
         derive_overall_status,
         normalize_conditions,
-        normalize_evidence_list,
+        normalize_documents,
     )
 
     data = build_input()
     conditions = normalize_conditions(json.loads(data["conditions_json"]))
-    evidence = normalize_evidence_list(json.loads(data["evidence_json"]))
-    candidate_map = deterministic_match(conditions, evidence)
+    docs_raw = json.loads(data["documents_json"])
+    documents = normalize_documents(docs_raw.get("documents", docs_raw))
+    candidate_map = deterministic_match(conditions, documents)
 
-    print(f"Parsed {len(conditions)} conditions, {len(evidence)} evidence docs.\n")
+    print(f"Parsed {len(conditions)} conditions, {len(documents)} submitted docs.\n")
     print("Evaluation groups:",
           {c["id"]: c["eval_group"] for c in conditions}, "\n")
     print("Candidate matches (deterministic cheap filter):")

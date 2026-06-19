@@ -1,8 +1,14 @@
 """
-normalize.py — Canonical normalization for conditions, evidence, verdicts.
+normalize.py — Canonical normalization for conditions, documents, verdicts.
 
-The LLM (and upstream systems) format fields inconsistently. Everything passes
-through here so downstream steps and the final output use a stable schema.
+Conditions arrive in the LOS (Encompass-style) export shape:
+
+    {"condition": {"id": 5601, "name": "...", "prior_to": "Docs",
+                   "data": {"Title": "...", "Description": "...", "Category": "Assets", ...},
+                   "result_document_ids": [25988, ...], "related_category_ids": [...]}}
+
+Documents arrive as the rack & stack (R&S) output produced upstream. Everything
+passes through here so downstream steps use a stable schema.
 """
 
 from __future__ import annotations
@@ -14,54 +20,48 @@ from typing import Any
 # Categories & evaluation routing
 # ---------------------------------------------------------------------------
 
-# Canonical condition categories (matches the reference conditions-ai taxonomy).
-CANONICAL_CATEGORIES = [
-    "income", "assets", "credit", "appraisal", "title",
-    "insurance", "identity", "collateral", "other",
-]
+# Canonical categories match the LOS condition taxonomy seen in production
+# (Assets / Credit / Property / Income / Misc), collapsed to lowercase.
+CANONICAL_CATEGORIES = ["income", "assets", "credit", "property", "other"]
 
 _CATEGORY_ALIASES = {
+    # income
     "income": "income",
     "employment": "income",
+    "self_employment": "income",
+    # assets
     "asset": "assets",
     "assets": "assets",
     "reserves": "assets",
     "funds": "assets",
+    "funds_to_close": "assets",
+    # credit (LOS bundles identity, housing history, undisclosed property here)
     "credit": "credit",
     "liabilities": "credit",
-    "appraisal": "appraisal",
-    "property": "appraisal",
-    "valuation": "appraisal",
-    "collateral": "collateral",
-    "title": "title",
-    "closing": "title",
-    "vesting": "title",
-    "insurance": "insurance",
-    "hazard": "insurance",
-    "flood": "insurance",
-    "identity": "identity",
-    "id": "identity",
-    "borrower": "identity",
+    "identity": "credit",
+    "id": "credit",
+    # property (LOS bundles appraisal, title, insurance, taxes, flood here)
+    "property": "property",
+    "appraisal": "property",
+    "valuation": "property",
+    "collateral": "property",
+    "title": "property",
+    "closing": "property",
+    "insurance": "property",
+    "hazard": "property",
+    "flood": "property",
+    # other / misc
+    "misc": "other",
+    "miscellaneous": "other",
     "compliance": "other",
     "disclosure": "other",
     "other": "other",
-    "misc": "other",
 }
 
-# Maps a canonical category to the evaluation step group that handles it.
-EVAL_GROUPS = {
-    "income": "income",
-    "assets": "assets",
-    "credit": "credit",
-    "appraisal": "property",
-    "collateral": "property",
-    "title": "title_compliance",
-    "insurance": "title_compliance",
-    "identity": "title_compliance",
-    "other": "title_compliance",
-}
+# Each canonical category maps directly to its evaluation step group.
+EVAL_GROUPS = {c: c for c in CANONICAL_CATEGORIES}
 
-VALID_EVAL_GROUPS = ["income", "assets", "credit", "property", "title_compliance"]
+VALID_EVAL_GROUPS = ["income", "assets", "credit", "property", "other"]
 
 
 def normalize_category(raw: Any) -> str:
@@ -70,7 +70,6 @@ def normalize_category(raw: Any) -> str:
     key = str(raw).strip().lower().replace(" ", "_").replace("/", "_")
     if key in _CATEGORY_ALIASES:
         return _CATEGORY_ALIASES[key]
-    # Fall back to substring match (e.g. "property_appraisal")
     for alias, canonical in _CATEGORY_ALIASES.items():
         if alias in key:
             return canonical
@@ -78,7 +77,7 @@ def normalize_category(raw: Any) -> str:
 
 
 def eval_group_for_category(category: str) -> str:
-    return EVAL_GROUPS.get(normalize_category(category), "title_compliance")
+    return EVAL_GROUPS.get(normalize_category(category), "other")
 
 
 # ---------------------------------------------------------------------------
@@ -154,29 +153,49 @@ def _coerce_confidence(v: Any) -> float:
     return max(0.0, min(100.0, round(n, 1)))
 
 
+def _ids_to_str(values: Any) -> list[str]:
+    return [str(v) for v in _as_list(values) if v not in (None, "")]
+
+
 # ---------------------------------------------------------------------------
-# Condition normalization
+# Condition normalization (LOS / Encompass export shape)
 # ---------------------------------------------------------------------------
 
 
 def normalize_condition(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return {}
-    category = normalize_category(_first(raw, "category", "condition_category", default="other"))
+
+    # Unwrap {"condition": {...}}
+    if isinstance(raw.get("condition"), dict):
+        raw = raw["condition"]
+
+    data = raw.get("data") if isinstance(raw.get("data"), dict) else {}
+
+    category_raw = _first(data, "Category") or _first(raw, "category", "condition_category", default="other")
+    category = normalize_category(category_raw)
+
     cond = {
-        "id": str(_first(raw, "id", "condition_id", "conditionId", default="")),
-        "label": _first(raw, "label", "title", "name", default=None),
-        "body": _first(raw, "body", "description", "text", "condition_text", default=""),
-        "raw_text": _first(raw, "raw_text", "rawText", "raw", default=""),
+        "id": str(_first(raw, "id", "condition_id", "conditionId", default="")
+                  or _first(data, "ID", default="")),
+        "label": _first(data, "Title") or _first(raw, "label", "title", "name", default=None),
+        "body": _first(data, "Description") or _first(raw, "body", "description", "text", default=""),
+        "raw_text": _first(raw, "raw_text", "rawText", default="") or _first(raw, "name", default=""),
         "category": category,
         "eval_group": eval_group_for_category(category),
-        "stage": _first(raw, "stage", default="informational"),
+        "stage": _first(data, "PriorTo") or _first(raw, "prior_to", "stage", default="informational"),
         "priority": _first(raw, "priority", default="normal"),
+        "status": _first(data, "Status") or _first(raw, "status", default="Added"),
+        "for_role": _first(data, "ForRole", default=None),
+        # Documents the borrower already submitted/attached for this condition.
+        "result_document_ids": _ids_to_str(_first(raw, "result_document_ids", "resultDocumentIds", default=[])),
+        "related_category_ids": _ids_to_str(_first(raw, "related_category_ids", "relatedCategoryIds", default=[])),
+        "loan_id": _first(raw, "loan_id", "loanId", default=None),
     }
+
     if not cond["raw_text"]:
         cond["raw_text"] = cond["body"]
     if not cond["id"]:
-        # Stable fallback id from the label/body
         base = (cond["label"] or cond["body"] or "condition")[:40]
         cond["id"] = "COND-" + re.sub(r"[^A-Za-z0-9]+", "-", base).strip("-").upper()
     return cond
@@ -187,23 +206,27 @@ def normalize_conditions(raw_list: Any) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Evidence normalization
+# Document (rack & stack output) normalization
 # ---------------------------------------------------------------------------
 
 
-def normalize_evidence(raw: dict) -> dict:
+def normalize_document(raw: dict) -> dict:
     if not isinstance(raw, dict):
         return {}
-    text = _first(raw, "document_text", "documentText", "text", "fullText", "full_text", default="")
+    text = _first(
+        raw, "document_text", "documentText", "extracted_text", "extractedText",
+        "ocr_text", "text", "fullText", "full_text", "content", default="",
+    )
     doc = {
-        "id": str(_first(raw, "id", "evidence_id", "evidenceId", default="")),
-        "file_name": _first(raw, "file_name", "fileName", "name", default="unknown"),
+        "id": str(_first(raw, "id", "document_id", "documentId", "doc_id", "result_document_id", default="")),
+        "file_name": _first(raw, "file_name", "fileName", "name", "title", default="unknown"),
         "detected_document_type": _first(
-            raw, "detected_document_type", "detectedDocumentType", "document_type", "type", default=""
+            raw, "detected_document_type", "detectedDocumentType", "document_type",
+            "documentType", "doc_type", "type", "classification", default="",
         ),
         "document_summary": _first(raw, "document_summary", "documentSummary", "summary", default=""),
         "document_text": text,
-        "page_count": _first(raw, "page_count", "pageCount", default=1),
+        "page_count": _first(raw, "page_count", "pageCount", "pages", default=1),
     }
     if not doc["id"]:
         base = (doc["file_name"] or "doc")[:30]
@@ -211,8 +234,8 @@ def normalize_evidence(raw: dict) -> dict:
     return doc
 
 
-def normalize_evidence_list(raw_list: Any) -> list[dict]:
-    return [normalize_evidence(e) for e in _as_list(raw_list) if isinstance(e, dict)]
+def normalize_documents(raw_list: Any) -> list[dict]:
+    return [normalize_document(e) for e in _as_list(raw_list) if isinstance(e, dict)]
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +256,7 @@ def normalize_evaluation(raw: dict, default_category: str = "other") -> dict:
         "missing_or_unclear_points": _as_list(
             _first(raw, "missing_or_unclear_points", "missing", "unclear", default=[])
         ),
-        "evidence_used": _as_list(_first(raw, "evidence_used", "evidence_ids", "evidenceIds", default=[])),
+        "evidence_used": _ids_to_str(_first(raw, "evidence_used", "evidence_ids", "evidenceIds", default=[])),
         "recommended_next_action": _first(
             raw, "recommended_next_action", "next_action", "recommendation", default=""
         ),
@@ -257,9 +280,8 @@ def normalize_evaluations(raw_list: Any, default_category: str = "other") -> lis
 
 def derive_overall_status(evaluation: dict, manual_review_threshold: float = 50.0) -> dict:
     """
-    Given a normalized evaluation, derive an overall status and a
-    needs_human_review flag using confidence + result, mirroring the
-    HIL (human-in-the-loop) gating from the reference evaluator.
+    Derive an overall status and a needs_human_review flag from a normalized
+    evaluation, mirroring the human-in-the-loop gating of the reference app.
     """
     result = evaluation.get("result", "Needs Review")
     confidence = float(evaluation.get("confidence", 0) or 0)
@@ -275,8 +297,6 @@ def derive_overall_status(evaluation: dict, manual_review_threshold: float = 50.
         overall = "partially_fulfilled"
     elif result == "Unfulfilled":
         overall = "unfulfilled"
-    elif result == "Fulfilled" and needs_human_review:
-        overall = "needs_human_review"
     else:
         overall = "needs_human_review"
 

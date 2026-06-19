@@ -1,50 +1,58 @@
 # SBIQ Conditions Evaluator
 
-An **agentic underwriting condition evaluator**. Given a loan's **conditions**
-(requirements an underwriter placed on the file) and a set of uploaded **evidence
-documents**, it decides for each condition whether the evidence makes it
-`Fulfilled`, `Partially Fulfilled`, `Unfulfilled`, or `Needs Review`, and flags
-items that require human review.
+An **agentic underwriting condition evaluator**. It runs **after preconditions**:
+preconditions recommends the documents a borrower must submit; the borrower submits
+them; those documents are racked & stacked (R&S) upstream. Given the loan's
+**conditions** and the borrower's **submitted documents** (R&S output), this engine
+decides for each condition whether the documents make it `Fulfilled`,
+`Partially Fulfilled`, `Unfulfilled`, or `Needs Review`, and flags items that need
+human review.
 
 It re-implements the purpose of the original `reference-sbiq-conditions-ai`
 React/Gemini app (cheap-filter triage + deep fulfillment analysis + human-in-the-
 loop) using the agentic LangGraph architecture of `predicted-conditions`: a single
-ReAct agent loop walking a scoped, sequential pipeline.
+ReAct agent loop walking a scoped, sequential pipeline. Its inputs mirror
+`predicted-conditions` (loan scenario + eligibility + document R&S), with the
+conditions list as the thing being evaluated.
 
 ## How It Works
 
-A single LLM agent runs a **9-step sequential pipeline**. Before each turn, only
+A single LLM agent runs an **8-step sequential pipeline**. Before each turn, only
 the current step's tools are bound and the current step's plan is injected as a
 transient system message. Completed steps are compressed into a summary to keep the
 context window bounded.
 
 ```
-STEP_00  Intake & Normalization        ─ Parse conditions + evidence + loan, normalize, build scenario
-STEP_01  Document Extraction            ─ Classify/summarize evidence docs (rack & stack)
-STEP_02  Candidate Matching (cheap)     ─ Deterministic + LLM triage -> condition⇄evidence candidate map
-STEP_03  Income Evaluation              ─ Deep fulfillment reasoning for income conditions
-STEP_04  Assets & Reserves Evaluation   ─ ... asset/reserves conditions
-STEP_05  Credit Evaluation              ─ ... credit conditions
-STEP_06  Property & Appraisal Evaluation─ ... property/appraisal/collateral conditions
-STEP_07  Title/Insurance/Compliance/ID  ─ ... remaining conditions
-STEP_08  Aggregation & HIL Packaging    ─ Merge verdicts, derive status, flag review, build final output
+STEP_00  Intake & Normalization      ─ Parse conditions + R&S documents + loan/eligibility, normalize, build scenario
+STEP_01  Candidate Matching (cheap)  ─ result_document_ids links + deterministic + LLM triage -> condition⇄document map
+STEP_02  Income Evaluation           ─ Deep fulfillment reasoning for income conditions
+STEP_03  Assets & Reserves Evaluation─ ... asset/reserves conditions
+STEP_04  Credit Evaluation           ─ ... credit conditions (incl. identity, housing history, undisclosed property)
+STEP_05  Property Evaluation         ─ ... property conditions (appraisal, title, insurance, taxes, flood)
+STEP_06  Misc & Other Evaluation     ─ ... remaining conditions
+STEP_07  Aggregation & HIL Packaging ─ Merge verdicts, derive status, flag review, build final output
 ```
+
+> There is no document-extraction/classification step: the documents are already
+> racked & stacked upstream and arrive pre-classified as part of the input.
 
 ### Key Design Decisions
 
-- **Agentic, not rule-coded**: Steps 03–07 use the LLM to reason over evidence text
+- **Runs after preconditions**: inputs are the loan scenario, eligibility output, and
+  the R&S document set — the same upstream artifacts `predicted-conditions` uses.
+- **Authoritative pre-links**: each condition's `result_document_ids` (the documents
+  the borrower submitted for it) are treated as authoritative candidate links in
+  STEP_01; deterministic keyword matching and LLM triage only supplement them.
+- **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over document text
   rather than hard-coded checks, mirroring `predicted-conditions`.
-- **Hybrid cheap filter**: STEP_02 runs a deterministic category/keyword/token
-  matcher first, then the LLM refines the candidate map — the agentic version of
-  the original app's "cheap filter".
 - **Dynamic tool scoping & plan injection**: Each step only sees its own tools and
   plan (`plans/step_XX_*.md`), reducing context cost and out-of-scope tool calls.
 - **Message summarization**: Completed-step messages are compressed before each LLM
   call (see `agent.py:_summarize_completed_steps`).
-- **Normalization layer**: All categories, verdicts, and evaluation fields are
-  coerced to a canonical schema in `tools/shared/normalize.py` regardless of how
-  the LLM formats them.
-- **Human-in-the-loop gating**: STEP_08 flags low-confidence, partial, unfulfilled,
+- **Normalization layer**: The LOS/Encompass condition shape, R&S document shape,
+  categories, verdicts, and evaluation fields are all coerced to a canonical schema
+  in `tools/shared/normalize.py`.
+- **Human-in-the-loop gating**: STEP_07 flags low-confidence, partial, unfulfilled,
   and ambiguous verdicts as `needs_human_review`.
 
 ## Inputs
@@ -53,9 +61,15 @@ Passed as raw strings (the agent parses them itself):
 
 | Input | Format | Description |
 |-------|--------|-------------|
-| `conditions_json` | JSON list | Conditions to evaluate (`id`, `label`, `body`, `category`, ...) |
-| `evidence_json` | JSON list | Evidence docs (`id`, `file_name`, `detected_document_type`, `document_summary`, `document_text`) |
-| `loan_json` | JSON (optional) | Loan/borrower context |
+| `conditions_json` | JSON | Conditions to evaluate, in the LOS/Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`) |
+| `documents_json` | JSON | Rack & stack (R&S) output — the documents the borrower submitted (id, type, summary, extracted text) |
+| `eligibility_json` | JSON (optional) | Eligibility engine output (`application_data`, `eligible_programs`) |
+| `loan_file_xml` | MISMO XML (optional) | Loan scenario for additional context |
+
+Conditions are routed to one of five evaluation groups by `Category`:
+`Income`, `Assets`, `Credit` (incl. identity / housing history / undisclosed
+property), `Property` (appraisal / title / insurance / taxes / flood), and
+`Misc → other`.
 
 ### Cloud / LangGraph invocation
 
@@ -66,8 +80,9 @@ POST /threads/{thread_id}/runs
   "assistant_id": "conditions-evaluator",
   "input": {
     "conditions_json": "<raw conditions JSON string>",
-    "evidence_json": "<raw evidence JSON string>",
-    "loan_json": "<optional loan JSON string>"
+    "documents_json": "<raw R&S documents JSON string>",
+    "eligibility_json": "<optional eligibility JSON string>",
+    "loan_file_xml": "<optional MISMO XML string>"
   }
 }
 ```
@@ -80,27 +95,27 @@ callers only need to send data. The final result is in thread state under
 
 ```json
 {
-  "scenario_summary": { "loan": {}, "counts": {}, "conditions_by_group": {} },
+  "scenario_summary": { "loan": {}, "eligible_programs": [], "counts": {}, "conditions_by_group": {} },
   "evaluations": [
     {
-      "condition_id": "COND-001",
-      "label": "Most recent 30 days of paystubs",
-      "category": "income",
-      "result": "Fulfilled",
-      "confidence": 92,
-      "short_reason": "Two consecutive 2026 paystubs show employer, borrower, and YTD earnings.",
-      "satisfied_points": ["Covers a 30-day period", "Shows YTD earnings"],
-      "missing_or_unclear_points": [],
-      "evidence_used": ["DOC-PAYSTUB1", "DOC-PAYSTUB2"],
-      "recommended_next_action": "None — condition met.",
-      "overall_status": "fulfilled",
-      "needs_human_review": false
+      "condition_id": "5660",
+      "label": "CORR:  Property: Insurance - Hazard",
+      "category": "property",
+      "result": "Partially Fulfilled",
+      "confidence": 70,
+      "short_reason": "Hazard dec page shows sufficient coverage and wind/hail, but the mortgagee clause is not listed.",
+      "satisfied_points": ["Coverage $410,000 ≥ loan amount", "Wind/Hail included"],
+      "missing_or_unclear_points": ["Loss payee / mortgagee clause (ISAOA + loan number) not shown"],
+      "evidence_used": ["26030"],
+      "recommended_next_action": "Request updated dec page with the lender's mortgagee clause.",
+      "overall_status": "partially_fulfilled",
+      "needs_human_review": true
     }
   ],
   "stats": {
-    "total_conditions": 7,
+    "total_conditions": 10,
     "needs_human_review": 4,
-    "by_result": { "Fulfilled": 3, "Partially Fulfilled": 1, "Unfulfilled": 2, "Needs Review": 1 },
+    "by_result": {},
     "by_overall_status": {},
     "by_category": {}
   }
@@ -111,9 +126,9 @@ callers only need to send data. The final result is in thread state under
 
 | Value | Meaning |
 |-------|---------|
-| `Fulfilled` | Evidence fully satisfies the condition |
+| `Fulfilled` | Submitted documents fully satisfy the condition |
 | `Partially Fulfilled` | Some required documents/data present, set incomplete |
-| `Unfulfilled` | Not satisfied, or no relevant evidence provided |
+| `Unfulfilled` | Not satisfied, or no relevant document submitted |
 | `Needs Review` | Ambiguous/unclear extraction; human judgment required |
 
 ## Project Structure
@@ -134,22 +149,21 @@ sbiq-conditions-ai/
 │
 ├── plans/                    # Per-step plans injected as system messages
 │   ├── system_prompt.md
-│   ├── step_00_intake.md ... step_08_aggregation.md
+│   ├── step_00_intake.md ... step_07_aggregation.md
 │
 ├── tools/
 │   ├── __init__.py           # Exports ALL_TOOLS
 │   ├── general.py            # write_todo, save_step_report, get_workflow_status
-│   ├── intake_tools.py       # STEP_00
-│   ├── extraction_tools.py   # STEP_01
-│   ├── matching_tools.py     # STEP_02
-│   ├── evaluation_tools.py   # STEP_03–07 (shared getter + per-category storers)
-│   ├── aggregation_tools.py  # STEP_08
+│   ├── intake_tools.py       # STEP_00 (parse_conditions, parse_documents, build_eval_scenario)
+│   ├── matching_tools.py     # STEP_01 (candidate matching)
+│   ├── evaluation_tools.py   # STEP_02–06 (shared getter + per-category storers)
+│   ├── aggregation_tools.py  # STEP_07
 │   └── shared/
-│       ├── normalize.py      # Canonical categories/verdicts/fields + HIL gating
-│       ├── matching.py       # Deterministic cheap-filter matcher
+│       ├── normalize.py      # LOS condition + R&S document + verdict normalization, HIL gating
+│       ├── matching.py       # result_document_ids + deterministic cheap-filter matcher
 │       └── evaluation.py     # Category context builder + evaluation storage
 │
-└── data/input/               # Sample conditions + evidence
+└── data/input/               # Sample conditions (Encompass shape), R&S documents, eligibility
 ```
 
 ## Run Locally

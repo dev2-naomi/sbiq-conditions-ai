@@ -1,58 +1,192 @@
 [
   {
-    "id": "COND-001",
-    "label": "Most recent 30 days of paystubs",
-    "body": "Provide the borrower's most recent paystubs covering a 30-day period showing YTD earnings, employer name, and borrower name.",
-    "category": "income",
-    "stage": "PTD",
-    "priority": "normal"
+    "condition": {
+      "id": 5601,
+      "name": "CORR:  ... : Provide most recent asset statement(s...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "84fb5968-7ece-4705-a0cc-4c73231ee61a",
+        "Title": "CORR:  Assets:",
+        "Description": "Provide most recent asset statement(s) to support sufficient funds to close and reserves. Require a total of $132,314.27 which includes $13,163.46 in reserves (which do not have to be liquid).  **The provide EVOD is acceptable but expires in 3 business days and prior to our closing.",
+        "Category": "Assets",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [827],
+      "result_document_ids": []
+    }
   },
   {
-    "id": "COND-002",
-    "label": "Two years W-2s",
-    "body": "Provide W-2 forms for the two most recent tax years for all employment used to qualify.",
-    "category": "income",
-    "stage": "PTD",
-    "priority": "normal"
+    "condition": {
+      "id": 5610,
+      "name": "CORR:  ... : *** (LA) 10/27 - Provide a copy of th...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "ad5f1275-570b-4f22-aa52-16d53ff93236",
+        "Title": "CORR:  Assets - Earnest Money Deposit",
+        "Description": "*** (LA) 10/27 - Provide a copy of the check or title receipt. ",
+        "Category": "Assets",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [210, 396, 502, 827, 1557],
+      "result_document_ids": [25988, 25989]
+    }
   },
   {
-    "id": "COND-003",
-    "label": "Two months bank statements for reserves",
-    "body": "Provide two most recent consecutive months of bank statements (all pages) evidencing sufficient reserves. Source any large deposits.",
-    "category": "assets",
-    "stage": "PTD",
-    "priority": "normal"
+    "condition": {
+      "id": 5652,
+      "name": "CORR:  ... : Provide a legible copy of Driver's Li...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "5cfc1a89-4683-45f4-ad8b-d00d4ab1e9c2",
+        "Title": "CORR:  Credit: Primary Identification",
+        "Description": "Provide a legible copy of Driver's License or other primary form of ID. Cut off...need better picture / copy of license",
+        "Category": "Credit",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Sr Loan Coordinator"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [323, 843, 844],
+      "result_document_ids": [26015]
+    }
   },
   {
-    "id": "COND-004",
-    "label": "Letter of explanation for recent credit inquiries",
-    "body": "Provide a signed letter of explanation addressing the three credit inquiries in the last 90 days shown on the credit report.",
-    "category": "credit",
-    "stage": "PTD",
-    "priority": "normal"
+    "condition": {
+      "id": 5653,
+      "name": "CORR:  ... : Client to provide life of loan flood ...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "2269e756-8bd9-4119-aa30-d5bd4b38da3f",
+        "Title": "CORR:  Property - Flood Cert",
+        "Description": "Client to provide life of loan flood cert",
+        "Category": "Property",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Sr Loan Coordinator"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [538, 1117],
+      "result_document_ids": [26022]
+    }
   },
   {
-    "id": "COND-005",
-    "label": "Full appraisal report for subject property",
-    "body": "Provide a completed appraisal report (Form 1004) supporting the value of the subject property at 123 Main St.",
-    "category": "appraisal",
-    "stage": "PTA",
-    "priority": "urgent"
+    "condition": {
+      "id": 5660,
+      "name": "CORR:  ... : **10/24 (BR) EFFECTIVE DATE MUST BE W...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "95a9bb90-7aaa-4705-bd61-dde66dc8e7b3",
+        "Title": "CORR:  Property: Insurance - Hazard",
+        "Description": "**10/24 (BR) EFFECTIVE DATE MUST BE WITHIN 15 DAYS OF NOTE DATE AS THIS IS A PURCHASE** Provide evidence of hazard insurance with sufficient coverage to support lesser of the loan amount or replacement cost. Wind/Hail must be included, or a separate policy required. Loss payee to reflect: Lender's Name, ISAOA with loan number and endorsement(s).",
+        "Category": "Property",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Sr Loan Coordinator"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [1479],
+      "result_document_ids": [26030]
+    }
   },
   {
-    "id": "COND-006",
-    "label": "Homeowners insurance declaration page",
-    "body": "Provide the homeowners insurance declaration page showing coverage at least equal to the loan amount, valid dates, and the correct mortgagee clause.",
-    "category": "insurance",
-    "stage": "PTC",
-    "priority": "normal"
+    "condition": {
+      "id": 5654,
+      "name": "CORR:  ... : Preliminary Title Commitment with 24-...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "d6d140cc-3445-499d-8c76-546c1bce36f6",
+        "Title": "CORR:  Property - Title Commitment",
+        "Description": "Preliminary Title Commitment with 24-month Chain of Title.",
+        "Category": "Property",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [164, 194, 522, 794, 828],
+      "result_document_ids": [26013, 26020]
+    }
   },
   {
-    "id": "COND-007",
-    "label": "Government-issued photo ID",
-    "body": "Provide a copy of a valid government-issued photo identification for each borrower.",
-    "category": "identity",
-    "stage": "PTC",
-    "priority": "normal"
+    "condition": {
+      "id": 5664,
+      "name": "Credit:... : Provide a VOR documenting the most re...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "a3463d25-17be-4274-af31-3257e7cb3f2a",
+        "Title": "Credit:  Verification of Rent is required",
+        "Description": "Provide a VOR documenting the most recent 12 months housing payment history along with 6 cancelled checks (if private party)",
+        "Category": "Credit",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [448, 449],
+      "result_document_ids": []
+    }
+  },
+  {
+    "condition": {
+      "id": 5620,
+      "name": "Income: : *** (LA) 10/27 - Letter must state th...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "35c36f85-8e4b-45b5-973a-6e16dba4b35e",
+        "Title": "Income:",
+        "Description": "*** (LA) 10/27 - Letter must state that the partner is aware that the business account is being used to qualify for a mortgage. Also, must specify the business account number(s) being used.  (Require letter from partner acknowledging the fact that the borrower is using business assets to qualify for loan).",
+        "Category": "Income",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [],
+      "result_document_ids": []
+    }
+  },
+  {
+    "condition": {
+      "id": 5659,
+      "name": "Income:... : Income: Verify that the borrower is a...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "e7a14fa4-196c-4f43-83c8-904f52271087",
+        "Title": "Income:  NonQM -Verify minimum 25% ownership interest in the Business",
+        "Description": "Income: Verify that the borrower is at least 25% owner of the business by providing one of the following: CPA letter, operating agreement, or equivalent reflecting the borrower's ownership percentage.",
+        "Category": "Income",
+        "PriorTo": "Docs",
+        "Status": "Added",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [1, 358, 504, 1553],
+      "result_document_ids": [26042]
+    }
+  },
+  {
+    "condition": {
+      "id": 5609,
+      "name": "Misc:  ... : Upload 1008/1003 showing the requesti...",
+      "prior_to": "Docs",
+      "data": {
+        "ID": "d702aaf4-03f8-4031-b781-697b6714c238",
+        "Title": "Misc:  Loan Structure Change Request",
+        "Description": "Upload 1008/1003 showing the requesting terms along with any other relevant info",
+        "Category": "Misc",
+        "PriorTo": "Docs",
+        "Status": "Reviewed",
+        "ForRole": "Underwriter"
+      },
+      "loan_id": 1042,
+      "related_category_ids": [],
+      "result_document_ids": []
+    }
   }
 ]

@@ -1,5 +1,5 @@
 """
-aggregation_tools.py — Tools for STEP_08: Aggregation & HIL Packaging.
+aggregation_tools.py — Tools for STEP_07: Aggregation & HIL Packaging.
 
 Merges every per-category evaluation, derives an overall status and a
 needs_human_review flag per condition, then assembles the final output report.
@@ -15,15 +15,13 @@ from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from typing_extensions import Annotated
 
-from tools.shared.normalize import derive_overall_status
-
-_EVAL_KEYS = ["03", "04", "05", "06", "07"]
+from tools.shared.normalize import VALID_EVAL_GROUPS, derive_overall_status
 
 
 def _collect_evaluations(module_outputs: dict) -> dict[str, dict]:
     """Flatten all per-group evaluations into condition_id -> evaluation."""
     merged: dict[str, dict] = {}
-    for key in _EVAL_KEYS:
+    for key in VALID_EVAL_GROUPS:
         mod = module_outputs.get(key, {}) or {}
         for ev in mod.get("evaluations", []) or []:
             cid = ev.get("condition_id")
@@ -86,7 +84,7 @@ def merge_evaluations(
 
     hr = sum(1 for r in merged if r["needs_human_review"])
     return Command(update={
-        "module_outputs": {"08": {"merged_evaluations": merged}},
+        "module_outputs": {"merged": {"merged_evaluations": merged}},
         "messages": [ToolMessage(
             f"Merged {len(merged)} evaluation(s); {hr} flagged for human review.",
             tool_call_id=tool_call_id,
@@ -105,7 +103,7 @@ def generate_final_output(
     """
     s = state or {}
     mo = s.get("module_outputs", {}) or {}
-    merged = mo.get("08", {}).get("merged_evaluations", []) or []
+    merged = mo.get("merged", {}).get("merged_evaluations", []) or []
 
     by_result = Counter(r.get("result") for r in merged)
     by_category = Counter(r.get("category") for r in merged)

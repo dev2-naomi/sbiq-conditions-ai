@@ -1,10 +1,17 @@
 """
 intake_tools.py — Tools for STEP_00: Intake & Normalization.
+
+Inputs (preconditions-style, already in state):
+- conditions_json   : conditions to evaluate (LOS/Encompass export shape)
+- documents_json    : rack & stack (R&S) output — the documents the borrower submitted
+- loan_file_xml     : MISMO XML loan scenario (optional context)
+- eligibility_json  : eligibility engine output (optional context)
 """
 
 from __future__ import annotations
 
 import json
+import re
 from collections import Counter
 
 from langchain_core.messages import ToolMessage
@@ -13,7 +20,7 @@ from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from typing_extensions import Annotated
 
-from tools.shared.normalize import normalize_conditions, normalize_evidence_list
+from tools.shared.normalize import normalize_conditions, normalize_documents
 
 
 def _loads(raw, default):
@@ -33,53 +40,77 @@ def parse_conditions(
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Parse and normalize the raw conditions list from the input (conditions_json).
-    Normalizes category, derives the evaluation group for each condition, and
-    stores the result in state for downstream steps.
+    Parse and normalize the raw conditions list (conditions_json). Handles the
+    LOS/Encompass export shape ({"condition": {"data": {...}, ...}}), normalizes
+    each condition's category, derives its evaluation group, and preserves the
+    upstream result_document_ids that link submitted documents to the condition.
     """
     s = state or {}
     raw = _loads(s.get("conditions_json"), [])
-    # Accept either a bare list or an object with a "conditions" key.
     if isinstance(raw, dict):
         raw = raw.get("conditions", raw.get("items", []))
     conditions = normalize_conditions(raw)
 
     by_group = Counter(c["eval_group"] for c in conditions)
-    by_category = Counter(c["category"] for c in conditions)
+    with_docs = sum(1 for c in conditions if c.get("result_document_ids"))
 
     return Command(update={
         "conditions": conditions,
         "messages": [ToolMessage(
-            f"Parsed {len(conditions)} condition(s). "
-            f"By group: {dict(by_group)}. By category: {dict(by_category)}.",
+            f"Parsed {len(conditions)} condition(s). By group: {dict(by_group)}. "
+            f"{with_docs} condition(s) have pre-linked submitted documents.",
             tool_call_id=tool_call_id,
         )],
     })
 
 
 @tool
-def parse_evidence(
+def parse_documents(
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Parse and normalize the raw evidence document list from the input
-    (evidence_json) and store it in state for downstream steps.
+    Parse and normalize the rack & stack (R&S) document output (documents_json):
+    the documents the borrower submitted, already classified and OCR'd upstream.
+    Stored in state for matching and evaluation.
     """
     s = state or {}
-    raw = _loads(s.get("evidence_json"), [])
+    raw = _loads(s.get("documents_json"), [])
     if isinstance(raw, dict):
-        raw = raw.get("evidence", raw.get("documents", raw.get("items", [])))
-    evidence = normalize_evidence_list(raw)
+        raw = raw.get("documents", raw.get("evidence", raw.get("items", [])))
+    documents = normalize_documents(raw)
 
-    names = [e.get("file_name") for e in evidence]
+    types = Counter(d.get("detected_document_type") or "unclassified" for d in documents)
     return Command(update={
-        "evidence": evidence,
+        "evidence": documents,
         "messages": [ToolMessage(
-            f"Parsed {len(evidence)} evidence document(s): {names}",
+            f"Parsed {len(documents)} submitted document(s). Types: {dict(types)}",
             tool_call_id=tool_call_id,
         )],
     })
+
+
+_XML_FIELDS = {
+    "borrower_first": r"<(?:\w+:)?(?:FirstName)>([^<]+)<",
+    "borrower_last": r"<(?:\w+:)?(?:LastName)>([^<]+)<",
+    "property_city": r"<(?:\w+:)?(?:CityName)>([^<]+)<",
+    "property_state": r"<(?:\w+:)?(?:StateCode)>([^<]+)<",
+}
+
+
+def _light_xml_scenario(xml: str) -> dict:
+    """Best-effort, dependency-free extraction of a few MISMO fields."""
+    out: dict = {}
+    if not xml:
+        return out
+    for key, pat in _XML_FIELDS.items():
+        m = re.search(pat, xml)
+        if m:
+            out[key] = m.group(1).strip()
+    name = " ".join(x for x in [out.pop("borrower_first", None), out.pop("borrower_last", None)] if x)
+    if name:
+        out["borrower_name"] = name
+    return out
 
 
 @tool
@@ -88,32 +119,40 @@ def build_eval_scenario(
     state: Annotated[dict, InjectedState] = None,
 ) -> Command:
     """
-    Build a compact evaluation scenario summary from the parsed conditions,
-    evidence, and the optional loan_json (borrower/loan context). This summary
-    frames the downstream evaluation.
+    Build a compact evaluation scenario summary from the parsed conditions and
+    documents plus the loan scenario (loan_file_xml) and eligibility output
+    (eligibility_json). The eligibility application_data, when present, is the
+    authoritative source for loan-level numbers.
     """
     s = state or {}
     conditions = s.get("conditions", []) or []
-    evidence = s.get("evidence", []) or []
-    loan = _loads(s.get("loan_json"), {})
-    if not isinstance(loan, dict):
-        loan = {}
+    documents = s.get("evidence", []) or []
+
+    eligibility = _loads(s.get("eligibility_json"), {})
+    if not isinstance(eligibility, dict):
+        eligibility = {}
+    app_data = eligibility.get("application_data") if isinstance(eligibility.get("application_data"), dict) else {}
+    eligible_programs = eligibility.get("eligible_programs") or eligibility.get("eligiblePrograms") or []
+
+    xml_scenario = _light_xml_scenario(s.get("loan_file_xml") or "")
 
     scenario = {
         "loan": {
-            "loan_number": loan.get("loanNumber") or loan.get("loan_number"),
-            "borrower_name": loan.get("borrowerName") or loan.get("borrower_name"),
-            "property_address": loan.get("propertyAddress") or loan.get("property_address"),
-            "loan_amount": loan.get("loanAmount") or loan.get("loan_amount"),
-            "loan_type": loan.get("loanType") or loan.get("loan_type"),
+            "loan_id": conditions[0].get("loan_id") if conditions else None,
+            "borrower_name": app_data.get("BorrowerName") or xml_scenario.get("borrower_name"),
+            "property_state": app_data.get("State") or xml_scenario.get("property_state"),
+            "property_city": app_data.get("City") or xml_scenario.get("property_city"),
+            "loan_amount": app_data.get("LoanAmount"),
+            "ltv": app_data.get("LTV"),
+            "fico": app_data.get("FICO"),
         },
+        "eligible_programs": eligible_programs,
         "counts": {
             "conditions": len(conditions),
-            "evidence_documents": len(evidence),
+            "submitted_documents": len(documents),
         },
         "conditions_by_group": dict(Counter(c.get("eval_group") for c in conditions)),
-        "conditions_by_category": dict(Counter(c.get("category") for c in conditions)),
-        "evidence_types": dict(Counter(e.get("detected_document_type") or "unclassified" for e in evidence)),
+        "document_types": dict(Counter(d.get("detected_document_type") or "unclassified" for d in documents)),
     }
 
     return Command(update={
@@ -121,8 +160,9 @@ def build_eval_scenario(
         "messages": [ToolMessage(
             "Built evaluation scenario: "
             f"{scenario['counts']['conditions']} conditions, "
-            f"{scenario['counts']['evidence_documents']} documents. "
-            f"Groups: {scenario['conditions_by_group']}.",
+            f"{scenario['counts']['submitted_documents']} documents. "
+            f"Groups: {scenario['conditions_by_group']}. "
+            f"Eligible programs: {eligible_programs}.",
             tool_call_id=tool_call_id,
         )],
     })
