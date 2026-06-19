@@ -1,0 +1,106 @@
+"""
+evaluation.py — Shared logic for the per-category evaluation steps (03-07).
+
+Each evaluation step is a thin wrapper: it loads the conditions for its
+evaluation group (with their candidate evidence text) and stores the LLM's
+per-condition verdicts into module_outputs under that group's key.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+from langchain_core.messages import ToolMessage
+from langgraph.types import Command
+
+from tools.shared.normalize import normalize_evaluations
+
+# Maps the evaluation-group argument to its module_outputs storage key.
+GROUP_OUTPUT_KEY = {
+    "income": "03",
+    "assets": "04",
+    "credit": "05",
+    "property": "06",
+    "title_compliance": "07",
+}
+
+# A representative canonical category for each group (used when the LLM omits it).
+GROUP_DEFAULT_CATEGORY = {
+    "income": "income",
+    "assets": "assets",
+    "credit": "credit",
+    "property": "appraisal",
+    "title_compliance": "title",
+}
+
+_TEXT_CAP = 8000  # cap evidence text per doc to keep context bounded
+
+
+def build_category_context(state: dict, eval_group: str) -> dict:
+    """
+    Assemble the conditions belonging to `eval_group` together with the full
+    text of each condition's candidate evidence documents.
+    """
+    conditions: list[dict] = state.get("conditions", []) or []
+    evidence: list[dict] = state.get("evidence", []) or []
+    candidate_map: dict = state.get("candidate_map", {}) or {}
+    evidence_by_id = {e.get("id"): e for e in evidence}
+
+    targets = [c for c in conditions if c.get("eval_group") == eval_group]
+
+    context_conditions = []
+    for cond in targets:
+        cid = cond.get("id")
+        candidates = candidate_map.get(cid, []) or []
+        ev_blocks = []
+        for cand in candidates:
+            eid = cand.get("evidence_id") if isinstance(cand, dict) else cand
+            doc = evidence_by_id.get(eid)
+            if not doc:
+                continue
+            text = doc.get("document_text", "") or ""
+            if len(text) > _TEXT_CAP:
+                text = text[:_TEXT_CAP] + "...[truncated]"
+            ev_blocks.append({
+                "evidence_id": doc.get("id"),
+                "file_name": doc.get("file_name"),
+                "detected_document_type": doc.get("detected_document_type"),
+                "document_summary": doc.get("document_summary"),
+                "document_text": text,
+                "match_confidence": cand.get("confidence") if isinstance(cand, dict) else None,
+            })
+        context_conditions.append({
+            "condition_id": cid,
+            "label": cond.get("label"),
+            "body": cond.get("body"),
+            "raw_text": cond.get("raw_text"),
+            "category": cond.get("category"),
+            "priority": cond.get("priority"),
+            "candidate_evidence": ev_blocks,
+        })
+
+    return {
+        "eval_group": eval_group,
+        "condition_count": len(context_conditions),
+        "conditions": context_conditions,
+    }
+
+
+def store_evaluations_command(
+    eval_group: str,
+    evaluations: list[dict],
+    tool_call_id: str,
+) -> Command:
+    """Normalize and persist evaluations into the group's module_outputs slot."""
+    key = GROUP_OUTPUT_KEY.get(eval_group, "07")
+    default_cat = GROUP_DEFAULT_CATEGORY.get(eval_group, "other")
+    norm = normalize_evaluations(evaluations, default_category=default_cat)
+
+    results = [e.get("result") for e in norm]
+    return Command(update={
+        "module_outputs": {key: {"evaluations": norm, "eval_group": eval_group}},
+        "messages": [ToolMessage(
+            f"Stored {len(norm)} {eval_group} evaluation(s): {results}",
+            tool_call_id=tool_call_id,
+        )],
+    })

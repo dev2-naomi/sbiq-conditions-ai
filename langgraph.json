@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "conditions-evaluator": "./agent.py:agent"
+  },
+  "env": ".env"
+}

@@ -1,0 +1,58 @@
+[
+  {
+    "id": "COND-001",
+    "label": "Most recent 30 days of paystubs",
+    "body": "Provide the borrower's most recent paystubs covering a 30-day period showing YTD earnings, employer name, and borrower name.",
+    "category": "income",
+    "stage": "PTD",
+    "priority": "normal"
+  },
+  {
+    "id": "COND-002",
+    "label": "Two years W-2s",
+    "body": "Provide W-2 forms for the two most recent tax years for all employment used to qualify.",
+    "category": "income",
+    "stage": "PTD",
+    "priority": "normal"
+  },
+  {
+    "id": "COND-003",
+    "label": "Two months bank statements for reserves",
+    "body": "Provide two most recent consecutive months of bank statements (all pages) evidencing sufficient reserves. Source any large deposits.",
+    "category": "assets",
+    "stage": "PTD",
+    "priority": "normal"
+  },
+  {
+    "id": "COND-004",
+    "label": "Letter of explanation for recent credit inquiries",
+    "body": "Provide a signed letter of explanation addressing the three credit inquiries in the last 90 days shown on the credit report.",
+    "category": "credit",
+    "stage": "PTD",
+    "priority": "normal"
+  },
+  {
+    "id": "COND-005",
+    "label": "Full appraisal report for subject property",
+    "body": "Provide a completed appraisal report (Form 1004) supporting the value of the subject property at 123 Main St.",
+    "category": "appraisal",
+    "stage": "PTA",
+    "priority": "urgent"
+  },
+  {
+    "id": "COND-006",
+    "label": "Homeowners insurance declaration page",
+    "body": "Provide the homeowners insurance declaration page showing coverage at least equal to the loan amount, valid dates, and the correct mortgagee clause.",
+    "category": "insurance",
+    "stage": "PTC",
+    "priority": "normal"
+  },
+  {
+    "id": "COND-007",
+    "label": "Government-issued photo ID",
+    "body": "Provide a copy of a valid government-issued photo identification for each borrower.",
+    "category": "identity",
+    "stage": "PTC",
+    "priority": "normal"
+  }
+]

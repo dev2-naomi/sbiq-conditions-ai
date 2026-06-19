@@ -1,0 +1,44 @@
+[
+  {
+    "id": "DOC-PAYSTUB1",
+    "file_name": "paystub_2026_05.pdf",
+    "detected_document_type": "Paystub",
+    "document_summary": "Paystub for John Borrower from Acme Corp, pay period 2026-05-01 to 2026-05-15.",
+    "document_text": "ACME CORP\nEmployee: John Borrower\nPay Period: 05/01/2026 - 05/15/2026\nPay Date: 05/20/2026\nGross Pay: 3,200.00\nYTD Gross: 32,000.00\nNet Pay: 2,410.00\nEmployer: Acme Corp, 500 Industrial Way."
+  },
+  {
+    "id": "DOC-PAYSTUB2",
+    "file_name": "paystub_2026_04.pdf",
+    "detected_document_type": "Paystub",
+    "document_summary": "Paystub for John Borrower from Acme Corp, pay period 2026-04-16 to 2026-04-30.",
+    "document_text": "ACME CORP\nEmployee: John Borrower\nPay Period: 04/16/2026 - 04/30/2026\nPay Date: 05/05/2026\nGross Pay: 3,200.00\nYTD Gross: 28,800.00\nNet Pay: 2,410.00\nEmployer: Acme Corp, 500 Industrial Way."
+  },
+  {
+    "id": "DOC-W2-2025",
+    "file_name": "w2_2025.pdf",
+    "detected_document_type": "W-2",
+    "document_summary": "2025 W-2 for John Borrower from Acme Corp.",
+    "document_text": "Form W-2 Wage and Tax Statement 2025\nEmployee: John Borrower\nEmployer: Acme Corp\nBox 1 Wages: 76,500.00\nBox 2 Federal Tax Withheld: 9,100.00"
+  },
+  {
+    "id": "DOC-BANK",
+    "file_name": "checking_statement_may2026.pdf",
+    "detected_document_type": "Bank Statement",
+    "document_summary": "May 2026 checking account statement for John Borrower, ending balance 24,300.",
+    "document_text": "FIRST NATIONAL BANK\nAccount Holder: John Borrower\nAccount: ****4821 Checking\nStatement Period: 05/01/2026 - 05/31/2026\nBeginning Balance: 21,050.00\nDeposit 05/20 Payroll ACME 2,410.00\nDeposit 05/12 Transfer 6,000.00\nEnding Balance: 24,300.00\nPage 1 of 1"
+  },
+  {
+    "id": "DOC-INS",
+    "file_name": "hoi_dec_page.pdf",
+    "detected_document_type": "Homeowners Insurance Declaration",
+    "document_summary": "Homeowners insurance declaration page for 123 Main St.",
+    "document_text": "HOMEOWNERS POLICY DECLARATIONS\nInsured: John Borrower\nProperty: 123 Main St\nDwelling Coverage A: 410,000\nPolicy Period: 06/01/2026 - 06/01/2027\nMortgagee: (not listed)"
+  },
+  {
+    "id": "DOC-ID",
+    "file_name": "drivers_license.jpg",
+    "detected_document_type": "Driver License",
+    "document_summary": "State driver license for John Borrower.",
+    "document_text": "STATE DRIVER LICENSE\nName: John Borrower\nDOB: 01/15/1985\nExpires: 01/15/2029\nLicense No: D1234567"
+  }
+]
