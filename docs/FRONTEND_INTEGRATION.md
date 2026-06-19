@@ -95,8 +95,10 @@ How the engine reads it:
   (`confidence`, `exceptions`, `total_pages`, `group_name`, `object_name`,
   `vision_check`, `source`, `blob_id`, …). You may also pass a pre-built field bag
   as `extracted_fields` (or `fields` / `data`).
-- **`id`** must match the `result_document_ids` used in the conditions — that's the
-  authoritative link.
+- **`id`** is how a document is referenced everywhere (it shows up in each
+  evaluation's `evidence_used`). If you *do* supply `result_document_ids` pre-links
+  on a condition, those ids must match the document `id`s here; otherwise the engine
+  links documents to conditions itself in STEP_01.
 
 > A complete, ready-to-send request body lives at
 > [`data/samples/sample_run_request.json`](../data/samples/sample_run_request.json).
@@ -149,7 +151,13 @@ When the run completes, read **`final_output`** from the run/thread state. Shape
   This is the natural order for an underwriter review queue.
 - Every condition appears exactly once. A condition with no matched evidence is
   back-filled as `Unfulfilled` / `needs_human_review: true`.
-- `confidence` is `0–100`.
+- `confidence` is `0–100`. `needs_human_review` is true whenever the result is not
+  a clean `Fulfilled` **or** confidence is below ~50.
+- `evidence_used` lists the `id`s of the documents the verdict relied on. When a
+  condition was matched to documents in STEP_01, this is populated automatically,
+  so you can always link a verdict back to the documents under it.
+- `guideline_refs` lists any NQMF guideline sections the agent consulted; it may be
+  empty when the verdict came from the condition text and documents alone.
 
 > A representative response lives at
 > [`data/samples/sample_final_output.json`](../data/samples/sample_final_output.json).
@@ -171,6 +179,93 @@ export type OverallStatus =
 
 export type EvalGroup = "income" | "assets" | "credit" | "property" | "other";
 
+// ── Input ──────────────────────────────────────────────────────────────────
+// Every field may be sent as the value shown OR as its JSON string.
+
+export interface SubmittedDocument {
+  id: number | string;
+  category?: { category_id?: number | string; category_name?: string };
+  // Structured fields R&S extracted. Housekeeping keys (confidence, total_pages,
+  // object_name, …) are ignored by the engine. Raw OCR text is usually absent.
+  metadata?: Record<string, unknown>;
+  // Optional pre-built field bag (alternative to deriving from metadata).
+  extracted_fields?: Record<string, unknown>;
+}
+
+export interface ConditionInput {
+  condition: {
+    id: number | string;
+    data: {
+      Title?: string;
+      Description?: string;
+      Category?: string; // Income | Assets | Credit | Property | (other)
+      Status?: string;
+      ForRole?: string;
+    };
+    loan_id?: number | string;
+    related_category_ids?: Array<number | string>;
+    result_document_ids?: Array<number | string>; // optional pre-links
+  };
+}
+
+export interface EvaluatorInput {
+  conditions_json: ConditionInput[] | string;
+  documents_json: { documents: SubmittedDocument[] } | SubmittedDocument[] | string;
+  eligibility_json?: Record<string, unknown> | string;
+  loan_file_xml?: string;
+  env?: string;
+}
+
+// ── Output (final_output) ────────────────────────────────────────────────────
+
+export interface Evaluation {
+  condition_id: string;
+  label: string | null;
+  body: string;
+  category: EvalGroup;
+  eval_group: EvalGroup;
+  priority: string;
+  result: Verdict;
+  confidence: number; // 0–100
+  short_reason: string;
+  satisfied_points: string[];
+  missing_or_unclear_points: string[];
+  evidence_used: string[]; // document ids the verdict relied on
+  recommended_next_action: string;
+  guideline_refs: string[];
+  overall_status: OverallStatus;
+  needs_human_review: boolean;
+}
+
+export interface ScenarioSummary {
+  loan: {
+    loan_id: number | string | null;
+    borrower_name?: string | null;
+    property_state?: string | null;
+    property_city?: string | null;
+    loan_amount?: number | null;
+    ltv?: number | null;
+    fico?: number | null;
+  };
+  eligible_programs: string[];
+  counts: { conditions: number; submitted_documents: number };
+  conditions_by_group: Record<EvalGroup, number>;
+  document_types: Record<string, number>;
+}
+
+export interface Stats {
+  total_conditions: number;
+  needs_human_review: number;
+  by_result: Partial<Record<Verdict, number>>;
+  by_overall_status: Partial<Record<OverallStatus, number>>;
+  by_category: Partial<Record<EvalGroup, number>>;
+}
+
+export interface FinalOutput {
+  scenario_summary: ScenarioSummary;
+  evaluations: Evaluation[];
+  stats: Stats;
+}
 ```
 
 ---
