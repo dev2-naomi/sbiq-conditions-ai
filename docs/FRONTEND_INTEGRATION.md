@@ -1,15 +1,12 @@
 # Frontend Integration Guide
 
-How to drive the **SBIQ Conditions Evaluator** from a frontend (or any client).
-
 This engine is a LangGraph agent. It takes a loan's **conditions** plus the
 borrower's **submitted documents** (rack & stack output) and returns, for every
 condition, a verdict (`Fulfilled` / `Partially Fulfilled` / `Unfulfilled` /
 `Needs Review`) with reasoning and a human-review flag.
 
 > The graph is named **`conditions-evaluator`** (see `langgraph.json`). A full run
-> calls the LLM many times and can take **minutes**, so treat it as an async job —
-> never block a UI thread waiting for it synchronously.
+> calls the LLM many times and can take **minutes**.
 
 ---
 
@@ -19,9 +16,6 @@ condition, a verdict (`Fulfilled` / `Partially Fulfilled` / `Unfulfilled` /
 preconditions  ──▶  borrower uploads docs  ──▶  rack & stack (R&S)  ──▶  THIS ENGINE  ──▶  underwriter UI
 (recommends docs)                              (classifies/OCRs)        (evaluates)        (review queue)
 ```
-
-Your frontend is the last box: you collect/forward the inputs, kick off a run,
-poll/stream until it finishes, then render `final_output`.
 
 ---
 
@@ -64,9 +58,12 @@ agent accepts both (it only calls `JSON.parse` when it receives a string).
 - `data.Category` routes the condition to an evaluation group:
   `Income` → income, `Assets` → assets, `Credit` → credit, `Property` → property,
   everything else → `other`.
-- **`result_document_ids`** is important: these are the document IDs the borrower
-  already submitted for this condition. The engine treats them as **authoritative
-  links** — make sure they reference IDs present in `documents_json`.
+- **`result_document_ids`** (optional): document IDs already linked to this
+  condition upstream. When present, the engine treats them as **authoritative
+  links** (make sure they reference IDs in `documents_json`). **Leaving it empty is
+  fine — and is the common case.** The engine still associates documents to each
+  condition itself in STEP_01 (matching on document type + extracted fields), so no
+  manual linking is required.
 
 **Document shape** (`documents_json` is `{ "documents": [...] }` or a bare array).
 This mirrors the **rack & stack (R&S) manifest**: each document is *classified*
@@ -92,16 +89,14 @@ R&S does **not** provide raw OCR text — the substance is the structured fields
 
 How the engine reads it:
 - **Document type** ← `category.category_name` (legacy aliases `document_type` /
-  `detected_document_type` / `type` still accepted).
+  `detected_document_type` / `type` still accepted). This may be empty/omitted —
+  then the document is matched and evaluated purely on its `extracted_fields`.
 - **Extracted fields** ← everything under `metadata` *except* housekeeping keys
   (`confidence`, `exceptions`, `total_pages`, `group_name`, `object_name`,
   `vision_check`, `source`, `blob_id`, …). You may also pass a pre-built field bag
   as `extracted_fields` (or `fields` / `data`).
 - **`id`** must match the `result_document_ids` used in the conditions — that's the
   authoritative link.
-- **Raw OCR text is optional.** If your R&S variant happens to include it, put it in
-  `document_text` / `extracted_text` / `ocr_text`; the agent will use it as an extra
-  signal, but it is never required.
 
 > A complete, ready-to-send request body lives at
 > [`data/samples/sample_run_request.json`](../data/samples/sample_run_request.json).
@@ -176,151 +171,31 @@ export type OverallStatus =
 
 export type EvalGroup = "income" | "assets" | "credit" | "property" | "other";
 
-export interface ConditionEvaluation {
-  condition_id: string;
-  label: string | null;
-  body: string;
-  category: EvalGroup;
-  eval_group: EvalGroup;
-  priority: string;
-  result: Verdict;
-  confidence: number; // 0-100
-  short_reason: string;
-  satisfied_points: string[];
-  missing_or_unclear_points: string[];
-  evidence_used: string[]; // document ids
-  recommended_next_action: string;
-  guideline_refs: string[]; // NQMF guideline sections consulted
-  overall_status: OverallStatus;
-  needs_human_review: boolean;
-}
-
-export interface EvaluatorResult {
-  scenario_summary: {
-    loan: Record<string, unknown>;
-    eligible_programs: string[];
-    counts: { conditions: number; submitted_documents: number };
-    conditions_by_group: Record<EvalGroup, number>;
-    document_types: Record<string, number>;
-  };
-  evaluations: ConditionEvaluation[];
-  stats: {
-    total_conditions: number;
-    needs_human_review: number;
-    by_result: Record<string, number>;
-    by_overall_status: Record<string, number>;
-    by_category: Record<string, number>;
-  };
-}
-
-// Rack & stack document (input): classified + structured fields, no raw OCR.
-export interface SubmittedDocument {
-  id: number | string; // must match conditions[].result_document_ids
-  category?: { category_id?: number; category_name?: string };
-  metadata?: Record<string, unknown>; // structured extracted fields + housekeeping
-  extracted_fields?: Record<string, unknown>; // optional pre-built field bag
-  document_text?: string; // optional raw OCR, usually absent
-}
-
-export interface EvaluatorInput {
-  conditions_json: unknown[] | string;
-  documents_json: { documents: SubmittedDocument[] } | SubmittedDocument[] | string;
-  eligibility_json?: Record<string, unknown> | string;
-  loan_file_xml?: string;
-  env?: "Test" | "Prod";
-}
 ```
 
 ---
 
 ## 3. How to call it
 
-The engine runs on **LangGraph Server** (the deployment target described by
-`langgraph.json`). It exposes the standard LangGraph "Assistants" HTTP API. There
-are three practical integration paths.
+The engine is deployed on **LangGraph Platform** and exposes the standard LangGraph
+"Assistants" HTTP API — usable via the `@langchain/langgraph-sdk` client or plain
+REST. Wire up the calls however the frontend/backend prefers; you only need:
 
-> **Never call Anthropic or run the graph directly from the browser.** The graph
-> needs `ANTHROPIC_API_KEY` and is long-running. Always go through a server (the
-> LangGraph Server, or your own backend that proxies to it).
+| What | Value |
+|------|-------|
+| **Base URL** | `https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app` |
+| **Auth** | a **LangSmith API key**, sent as the `X-Api-Key` header (REST) or `apiKey` in the SDK `Client` |
+| **Assistant / graph id** | `conditions-evaluator` |
+| **Input** | the `EvaluatorInput` object (§2.1) |
+| **Result** | read `final_output` from the thread/run state (§2.2) |
 
-### Option A — LangGraph JS SDK (recommended for JS/TS apps)
+> **Never call the graph (or Anthropic) directly from the browser.** Runs are
+> long-running (minutes) and your LangSmith API key must stay secret. Proxy through
+> your own server/backend, which holds the key and talks to the URL above.
 
-```bash
-npm install @langchain/langgraph-sdk
-```
-
-```ts
-import { Client } from "@langchain/langgraph-sdk";
-
-const client = new Client({ apiUrl: process.env.LANGGRAPH_URL! });
-
-export async function evaluateConditions(input: EvaluatorInput): Promise<EvaluatorResult> {
-  const thread = await client.threads.create();
-
-  // Blocking helper: waits for the run to finish and returns final state values.
-  const state = await client.runs.wait(thread.thread_id, "conditions-evaluator", {
-    input,
-  });
-
-  const result = (state as any).final_output as EvaluatorResult | undefined;
-  if (!result) throw new Error("Run finished without final_output");
-  return result;
-}
-```
-
-Stream progress instead of blocking (good for a progress bar — you can surface
-each step as the agent advances):
-
-```ts
-const stream = client.runs.stream(thread.thread_id, "conditions-evaluator", {
-  input,
-  streamMode: "updates",
-});
-for await (const chunk of stream) {
-  // chunk.event === "updates"; inspect chunk.data for current_step / step_reports
-}
-const finalState = await client.threads.getState(thread.thread_id);
-const result = finalState.values.final_output;
-```
-
-### Option B — Raw REST (any language)
-
-```bash
-# 1) Create a thread
-curl -s -X POST "$LANGGRAPH_URL/threads" -H "Content-Type: application/json" -d '{}'
-# -> { "thread_id": "..." }
-
-# 2) Create a run and wait for the result (returns final state values)
-curl -s -X POST "$LANGGRAPH_URL/threads/$THREAD_ID/runs/wait" \
-  -H "Content-Type: application/json" \
-  -d @data/samples/sample_run_request.json
-# -> final state, including "final_output"
-```
-
-For long runs prefer the non-blocking variant and poll:
-
-```
-POST /threads/{thread_id}/runs           -> { run_id, status: "pending" }
-GET  /threads/{thread_id}/runs/{run_id}  -> { status: "running" | "success" | "error" }
-GET  /threads/{thread_id}/state          -> { values: { final_output, current_step, ... } }
-```
-
-### Option C — Thin backend wrapper
-
-If you don't want the frontend to speak the LangGraph API directly, put a small
-endpoint in your own backend that (a) accepts the four inputs, (b) calls Option A
-or B, and (c) returns just `final_output`. This is the cleanest contract for a UI:
-
-```
-POST /api/conditions/evaluate   { conditions, documents, eligibility?, loanXml? }
-  -> 202 { jobId }
-GET  /api/conditions/evaluate/{jobId}
-  -> 200 { status, result?: EvaluatorResult }
-```
-
-Internally your backend can also run the graph in-process (`from agent import agent;
-agent.invoke(input)`) if you deploy this repo as a Python service rather than on
-LangGraph Server.
+The typical sequence is: create a thread → start a run → wait or poll for completion
+→ read `final_output`. See §6 for why you should prefer the non-blocking
+"start + poll" pattern.
 
 ---
 
@@ -328,10 +203,10 @@ LangGraph Server.
 
 1. **Gather inputs.** Usually you already have `conditions_json`, `documents_json`,
    and `eligibility_json` from upstream systems — forward them as-is.
-2. **Start the run** (Option A/B/C) and immediately show a "Evaluating…" state.
-   Runs take minutes; do it in the background and let the user navigate away.
-3. **Show progress** (optional) by streaming `updates` and reading `current_step`
-   (`STEP_00` … `STEP_07`) and `step_reports`.
+2. **Start the run** and immediately show an "Evaluating…" state. Runs take
+   minutes; do it in the background and let the user navigate away.
+3. **Show progress** (optional) by streaming run `updates` (or polling the thread
+   state) and reading `current_step` (`STEP_00` … `STEP_07`) and `step_reports`.
 4. **On completion**, read `final_output` and render.
 5. **Persist** `final_output` keyed by `loan_id` / `thread_id` so reviewers can
    reopen it without re-running.
@@ -371,10 +246,14 @@ LangGraph Server.
   last messages for the cause.
 - **Empty `conditions_json`:** you'll get `evaluations: []` and zeroed stats.
 - **`result_document_ids` referencing missing documents:** the link is ignored and
-  the condition relies on heuristic matching; it may come back `Unfulfilled` or
+  the condition falls back to STEP_01 matching; it may come back `Unfulfilled` or
   `Needs Review`. Keep document IDs consistent across the two inputs.
-- **Timeouts:** size client/proxy timeouts in minutes, or use the non-blocking
-  poll pattern (Option B) so a gateway timeout never kills the run.
+- **Timeouts:** runs take minutes, so don't rely on a single blocking request.
+  Prefer the **non-blocking "start + poll" pattern**: create a run (returns
+  immediately with a `run_id` / `pending` status), then poll the run status or the
+  thread state every few seconds until it's `success`/`error`, and read
+  `final_output` then. This way a gateway/proxy timeout never kills the run. (A
+  blocking "run and wait" call also exists, but is only safe for short timeouts.)
 - **Idempotency:** reuse one thread per loan evaluation; create a new thread for a
   fresh run.
 
@@ -384,16 +263,6 @@ LangGraph Server.
 
 | File | Purpose |
 |------|---------|
-| [`data/samples/sample_run_request.json`](../data/samples/sample_run_request.json) | Complete request body (`assistant_id` + `input`) you can POST to `/runs/wait` |
+| [`data/samples/sample_run_request.json`](../data/samples/sample_run_request.json) | Complete run request body (`assistant_id` + `input`) for the Assistants API |
 | [`data/samples/sample_final_output.json`](../data/samples/sample_final_output.json) | Representative `final_output` to build/test the UI against |
 | [`data/input/`](../data/input/) | The raw inputs split into individual files (conditions, documents, eligibility) used by `test_pipeline.py` |
-
-Quick local smoke test of the contract (no UI, no API key needed for the offline
-structural check):
-
-```bash
-python test_pipeline.py --offline   # deterministic plumbing only
-python test_pipeline.py             # full run; writes test_results/last_run.json
-```
-
-`test_results/last_run.json` is exactly the `final_output` your frontend receives.

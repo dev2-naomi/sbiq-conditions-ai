@@ -1,9 +1,11 @@
 """
-matching_tools.py — Tools for STEP_01: Candidate Matching (cheap filter).
+matching_tools.py — Tools for STEP_01: Candidate Matching.
 
-Produces a condition -> candidate-document map. Each condition's upstream
-result_document_ids are authoritative pre-links; a deterministic keyword pass
-supplements them, and the LLM confirms/refines before storing the final map.
+Most conditions arrive WITHOUT pre-linked documents (result_document_ids is usually
+empty), so this step actively associates submitted documents to conditions. The
+tool returns a matching workspace — every condition plus the full document
+inventory (type + extracted fields) and a cheap deterministic shortlist — and the
+LLM decides the final condition -> candidate-document map.
 """
 
 from __future__ import annotations
@@ -16,37 +18,77 @@ from typing_extensions import Annotated
 
 from tools.shared.matching import deterministic_match
 
+_FIELD_VALUE_CAP = 200
+
+
+def _compact_fields(fields: dict) -> dict:
+    """Trim long field values so the inventory stays context-friendly."""
+    out: dict = {}
+    for k, v in (fields or {}).items():
+        if isinstance(v, str) and len(v) > _FIELD_VALUE_CAP:
+            out[k] = v[:_FIELD_VALUE_CAP] + "..."
+        else:
+            out[k] = v
+    return out
+
 
 @tool
 def deterministic_candidate_match(
-    threshold: float = 30.0,
+    threshold: float = 20.0,
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
     state: Annotated[dict, InjectedState] = None,
 ) -> dict:
     """
-    Run candidate matching over all conditions and submitted documents. Combines
-    authoritative result_document_ids pre-links with a heuristic keyword/token
-    matcher. Returns proposed candidates per condition for you to review. This
-    does NOT decide fulfillment — only plausibility.
+    Build the matching workspace for associating documents to conditions. Returns:
+      - `conditions`: each condition's label/body/category, its authoritative
+        `prelinked_document_ids` (result_document_ids — usually empty), and a cheap
+        `proposed_candidates` shortlist (keyword/field heuristic — a HINT only).
+      - `document_inventory`: EVERY submitted document with its `document_type` and
+        `extracted_fields`, so you can match documents the shortlist missed.
+
+    You then decide the real map and pass it to `store_candidate_matches`. This is
+    triage (plausibility), NOT a fulfillment decision.
 
     Args:
-        threshold: minimum heuristic confidence (0-100) for a doc to be a candidate.
-                   (Authoritative result_document_ids links are always included.)
+        threshold: minimum heuristic confidence (0-100) for the proposed shortlist.
+                   Kept low for recall. (Authoritative pre-links are always included.)
     """
     s = state or {}
     conditions = s.get("conditions", []) or []
     documents = s.get("evidence", []) or []
     proposed = deterministic_match(conditions, documents, threshold=threshold)
 
+    inventory = [
+        {
+            "evidence_id": d.get("id"),
+            "document_type": d.get("detected_document_type"),
+            "extracted_fields": _compact_fields(d.get("extracted_fields") or {}),
+        }
+        for d in documents
+    ]
+
+    conditions_view = []
+    for c in conditions:
+        cid = c.get("id")
+        conditions_view.append({
+            "condition_id": cid,
+            "label": c.get("label"),
+            "body": c.get("body"),
+            "category": c.get("category"),
+            "prelinked_document_ids": c.get("result_document_ids", []) or [],
+            "proposed_candidates": proposed.get(cid, []),
+        })
+
     total = sum(len(v) for v in proposed.values())
-    unmatched = [cid for cid, v in proposed.items() if not v]
     return {
-        "proposed_candidate_map": proposed,
-        "total_candidate_links": total,
-        "conditions_without_candidates": unmatched,
-        "note": "Conditions with no candidates likely have no submitted documents and "
-                "will evaluate as Unfulfilled. Review the proposals, add/remove links "
-                "using your judgment, then call store_candidate_matches with the final map.",
+        "conditions": conditions_view,
+        "document_inventory": inventory,
+        "total_documents": len(documents),
+        "total_proposed_links": total,
+        "note": "Pre-links are usually empty — actively match each condition against "
+                "the document_inventory using document_type AND extracted_fields, not "
+                "just the proposed_candidates. Prefer recall. Then call "
+                "store_candidate_matches with {condition_id: [evidence_id, ...]}.",
     }
 
 

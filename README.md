@@ -24,7 +24,7 @@ context window bounded.
 
 ```
 STEP_00  Intake & Normalization      ─ Parse conditions + R&S documents + loan/eligibility, normalize, build scenario
-STEP_01  Candidate Matching (cheap)  ─ result_document_ids links + deterministic + LLM triage -> condition⇄document map
+STEP_01  Candidate Matching          ─ Associate docs⇄conditions: result_document_ids (authoritative) + LLM matching over the full document inventory (type + extracted_fields)
 STEP_02  Income Evaluation           ─ Deep fulfillment reasoning for income conditions
 STEP_03  Assets & Reserves Evaluation─ ... asset/reserves conditions
 STEP_04  Credit Evaluation           ─ ... credit conditions (incl. identity, housing history, undisclosed property)
@@ -40,9 +40,11 @@ STEP_07  Aggregation & HIL Packaging ─ Merge verdicts, derive status, flag rev
 
 - **Runs after preconditions**: inputs are the loan scenario, eligibility output, and
   the R&S document set — the same upstream artifacts `predicted-conditions` uses.
-- **Authoritative pre-links**: each condition's `result_document_ids` (the documents
-  the borrower submitted for it) are treated as authoritative candidate links in
-  STEP_01; deterministic keyword matching and LLM triage only supplement them.
+- **Active document⇄condition matching**: conditions usually arrive **without**
+  pre-linked documents, so STEP_01 actively associates them. Any
+  `result_document_ids` present are honored as authoritative; otherwise the LLM
+  matches each condition against the full document inventory (type +
+  `extracted_fields`), with a cheap deterministic shortlist for recall.
 - **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over each document's
   **structured extracted fields** (the R&S output) rather than hard-coded checks,
   mirroring `predicted-conditions`.
@@ -78,6 +80,14 @@ property), `Property` (appraisal / title / insurance / taxes / flood), and
 `Misc → other`.
 
 ### Cloud / LangGraph invocation
+
+Deployed on LangGraph Platform at:
+
+```
+https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app
+```
+
+(Requests require a LangSmith API key via the `X-Api-Key` header.)
 
 ```json
 POST /threads/{thread_id}/runs
