@@ -79,14 +79,37 @@ def build_category_context(state: dict, eval_group: str) -> dict:
     }
 
 
+def _candidate_ids_for(candidate_map: dict, condition_id: str) -> list[str]:
+    """Evidence ids matched to a condition during STEP_01, in match order."""
+    out: list[str] = []
+    for cand in candidate_map.get(condition_id, []) or []:
+        eid = cand.get("evidence_id") if isinstance(cand, dict) else cand
+        if eid not in (None, "") and str(eid) not in out:
+            out.append(str(eid))
+    return out
+
+
 def store_evaluations_command(
     eval_group: str,
     evaluations: list[dict],
     tool_call_id: str,
+    state: dict | None = None,
 ) -> Command:
-    """Normalize and persist evaluations into the group's module_outputs slot."""
+    """Normalize and persist evaluations into the group's module_outputs slot.
+
+    Safety net: if the model omitted ``evidence_used`` for a condition, backfill it
+    from the STEP_01 candidate matches so the stored verdict still links to the
+    documents that were examined.
+    """
     default_cat = GROUP_DEFAULT_CATEGORY.get(eval_group, "other")
     norm = normalize_evaluations(evaluations, default_category=default_cat)
+
+    candidate_map = (state or {}).get("candidate_map", {}) or {}
+    for ev in norm:
+        if not ev.get("evidence_used"):
+            backfill = _candidate_ids_for(candidate_map, ev.get("condition_id", ""))
+            if backfill:
+                ev["evidence_used"] = backfill
 
     results = [e.get("result") for e in norm]
     return Command(update={

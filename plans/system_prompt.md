@@ -50,8 +50,13 @@ Rules:
    call `save_step_report` and advance.
 6. Be conservative: if evidence is missing, referenced-but-not-present, or the
    extracted fields are incomplete/unclear, prefer **Needs Review** or
-   **Partially Fulfilled** over a false **Fulfilled**. Always cite which evidence
-   you relied on.
+   **Partially Fulfilled** over a false **Fulfilled**.
+7. For EVERY evaluation you store, you MUST set: a real numeric `confidence`
+   (0–100 — never omit it; a missing value is treated as 0 and forces human
+   review) and `evidence_used` listing the `evidence_id`(s) of every candidate
+   document you relied on. If your reasoning names a document, its id belongs in
+   `evidence_used`. Only leave `evidence_used` empty when no document was provided
+   for the condition.
 
 ## Underwriting judgment
 

@@ -75,13 +75,21 @@ def store_income_evaluations(
     Store per-condition income evaluations.
 
     Args:
-        evaluations: list of objects, one per condition, each with:
-            condition_id, result ("Fulfilled"|"Partially Fulfilled"|
-            "Unfulfilled"|"Needs Review"), confidence (0-100), short_reason,
-            satisfied_points[], missing_or_unclear_points[], evidence_used[],
-            recommended_next_action.
+        evaluations: list of objects, one per condition. EVERY field is required:
+            - condition_id (str): the condition's id.
+            - result (str): "Fulfilled"|"Partially Fulfilled"|"Unfulfilled"|"Needs Review".
+            - confidence (number 0-100): your confidence in the verdict. ALWAYS set a
+              real number — never omit it (a missing confidence is treated as 0 and
+              forces human review).
+            - short_reason (str): one-sentence justification.
+            - satisfied_points (list[str]), missing_or_unclear_points (list[str]).
+            - evidence_used (list[str]): the evidence_id(s) of the candidate documents
+              you actually relied on. ALWAYS list the ids you cited in your reasoning;
+              do not leave this empty when you used a document.
+            - recommended_next_action (str).
+            - guideline_refs (list[str]): any guideline sections you consulted.
     """
-    return store_evaluations_command("income", evaluations, tool_call_id)
+    return store_evaluations_command("income", evaluations, tool_call_id, state)
 
 
 @tool
@@ -92,9 +100,10 @@ def store_assets_evaluations(
 ) -> Command:
     """
     Store per-condition asset/reserves evaluations. Schema matches
-    store_income_evaluations.
+    store_income_evaluations (every field required, including a real numeric
+    confidence and the evidence_used ids you relied on).
     """
-    return store_evaluations_command("assets", evaluations, tool_call_id)
+    return store_evaluations_command("assets", evaluations, tool_call_id, state)
 
 
 @tool
@@ -105,9 +114,10 @@ def store_credit_evaluations(
 ) -> Command:
     """
     Store per-condition credit evaluations (includes identity, housing history,
-    undisclosed property). Schema matches store_income_evaluations.
+    undisclosed property). Schema matches store_income_evaluations (every field
+    required, including a real numeric confidence and the evidence_used ids).
     """
-    return store_evaluations_command("credit", evaluations, tool_call_id)
+    return store_evaluations_command("credit", evaluations, tool_call_id, state)
 
 
 @tool
@@ -118,9 +128,10 @@ def store_property_evaluations(
 ) -> Command:
     """
     Store per-condition property evaluations (appraisal, title, insurance, taxes,
-    purchase agreement, flood). Schema matches store_income_evaluations.
+    purchase agreement, flood). Schema matches store_income_evaluations (every field
+    required, including a real numeric confidence and the evidence_used ids).
     """
-    return store_evaluations_command("property", evaluations, tool_call_id)
+    return store_evaluations_command("property", evaluations, tool_call_id, state)
 
 
 @tool
@@ -131,6 +142,7 @@ def store_other_evaluations(
 ) -> Command:
     """
     Store per-condition miscellaneous/other evaluations. Schema matches
-    store_income_evaluations.
+    store_income_evaluations (every field required, including a real numeric
+    confidence and the evidence_used ids).
     """
-    return store_evaluations_command("other", evaluations, tool_call_id)
+    return store_evaluations_command("other", evaluations, tool_call_id, state)
