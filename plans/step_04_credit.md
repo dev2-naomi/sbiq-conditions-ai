@@ -8,7 +8,9 @@ LOS taxonomy this group also includes **identity**, **housing history**, and
 
 ## Actions
 
-1. Call `get_conditions_to_evaluate` with `category="credit"`.
+1. Call `get_conditions_to_evaluate` with `category="credit"`. Each candidate
+   document carries its `document_type`, `extracted_fields`, and an `ocr_preview`;
+   call `get_document_ocr(evidence_id, full=True)` when you need the full OCR.
 2. If `condition_count` is 0, call `save_step_report` and advance.
 3. If a condition is ambiguous or you need the standard a document must meet
    (e.g. months of housing history, acceptable VOR/cancelled-check substitutes),

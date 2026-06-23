@@ -7,7 +7,9 @@ fall into income, assets, credit, or property.
 
 ## Actions
 
-1. Call `get_conditions_to_evaluate` with `category="other"`.
+1. Call `get_conditions_to_evaluate` with `category="other"`. Each candidate
+   document carries its `document_type`, `extracted_fields`, and an `ocr_preview`;
+   call `get_document_ocr(evidence_id, full=True)` when you need the full OCR.
 2. If `condition_count` is 0, call `save_step_report` and advance.
 3. If a condition is ambiguous, you may call `load_guideline_sections` (e.g.
    `COMPLIANCE`, `BORROWER ELIGIBILITY`, `GENERAL UNDERWRITING REQUIREMENTS`).

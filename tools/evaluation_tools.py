@@ -24,9 +24,9 @@ def get_conditions_to_evaluate(
 ) -> dict:
     """
     Load the conditions for an evaluation group together with each condition's
-    candidate documents — every candidate's document_type and its structured
-    extracted_fields (and raw text only if available) — so you can decide
-    fulfillment.
+    candidate documents — every candidate's document_type, its structured
+    extracted_fields, and an ocr_preview (first OCR pages). Call get_document_ocr
+    for the full OCR when the preview is insufficient — so you can decide fulfillment.
 
     Args:
         category: the evaluation group — one of "income", "assets", "credit",

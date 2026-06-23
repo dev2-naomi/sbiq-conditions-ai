@@ -16,6 +16,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from tools.shared.ocr import split_pages as split_ocr_pages
+
 # ---------------------------------------------------------------------------
 # Categories & evaluation routing
 # ---------------------------------------------------------------------------
@@ -209,12 +211,14 @@ def normalize_conditions(raw_list: Any) -> list[dict]:
 # Document (rack & stack output) normalization
 # ---------------------------------------------------------------------------
 #
-# Rack & stack (R&S) does NOT hand us raw OCR text. It classifies each submitted
-# document and emits a manifest where every document carries:
+# Rack & stack (R&S) classifies each submitted document and emits a manifest where
+# every document carries:
 #   - "category": {"category_id", "category_name", ...}   (the document type)
 #   - "metadata": {<structured extracted fields> + housekeeping}
-# The structured fields under "metadata" (minus housekeeping) are the substance we
-# reason over. Raw OCR text, when present at all, is only an optional extra.
+#   - OCR text (manifest "artifacts" of type "ocr", dereferenced upstream and
+#     inlined as "ocr_text"/"document_text"), used for relevance triage + evaluation.
+# The structured fields under "metadata" (minus housekeeping) plus the OCR text are
+# the substance we reason over.
 
 # Housekeeping keys that live under metadata but are NOT extracted entity fields.
 _DOC_META_HOUSEKEEPING = {
@@ -246,10 +250,16 @@ def normalize_document(raw: dict) -> dict:
         "documentType", "doc_type", "type", "classification", default="",
     )
 
-    # Raw OCR text is optional and usually absent from R&S output.
+    # OCR text (dereferenced upstream from the manifest's "ocr" artifacts and
+    # inlined here). Split into pages so downstream steps can read the first few
+    # pages first and escalate to the full text only when needed.
     text = _first(
         raw, "document_text", "documentText", "extracted_text", "extractedText",
         "ocr_text", "text", "fullText", "full_text", "content", default="",
+    )
+    ocr_pages = split_ocr_pages(text)
+    declared_pages = _first(metadata, "total_pages", "page_count") or _first(
+        raw, "page_count", "pageCount", "pages", default=None
     )
 
     doc = {
@@ -261,7 +271,9 @@ def normalize_document(raw: dict) -> dict:
         "document_summary": _first(raw, "document_summary", "documentSummary", "summary", default=""),
         "extracted_fields": extracted,
         "document_text": text,
-        "page_count": _first(metadata, "total_pages", "page_count") or _first(raw, "page_count", "pageCount", "pages", default=1),
+        "ocr_pages": ocr_pages,
+        "has_ocr": bool(ocr_pages),
+        "page_count": declared_pages or (len(ocr_pages) if ocr_pages else 1),
     }
     if not doc["id"]:
         base = (doc["file_name"] or doc["detected_document_type"] or "doc")[:30]

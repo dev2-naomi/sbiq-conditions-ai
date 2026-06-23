@@ -1,12 +1,12 @@
 # SBIQ Conditions Evaluator
 
-An **agentic underwriting condition evaluator**. It runs **after preconditions**:
-preconditions recommends the documents a borrower must submit; the borrower submits
-them; those documents are racked & stacked (R&S) upstream. Given the loan's
-**conditions** and the borrower's **submitted documents** (R&S output), this engine
-decides for each condition whether the documents make it `Fulfilled`,
-`Partially Fulfilled`, `Unfulfilled`, or `Needs Review`, and flags items that need
-human review.
+An **agentic underwriting condition evaluator**. The loan's **conditions** are typed
+in **Encompass** by underwriters (free-text, plus some default / automated
+conditions); the borrower's **submitted documents** are racked & stacked (R&S)
+upstream into a manifest that carries each document's structured extracted fields
+**and its OCR text**. Given the conditions and that manifest, this engine decides for
+each condition whether the documents make it `Fulfilled`, `Partially Fulfilled`,
+`Unfulfilled`, or `Needs Review`, and flags items that need human review.
 
 It re-implements the purpose of the original `reference-sbiq-conditions-ai`
 React/Gemini app (cheap-filter triage + deep fulfillment analysis + human-in-the-
@@ -23,8 +23,8 @@ transient system message. Completed steps are compressed into a summary to keep 
 context window bounded.
 
 ```
-STEP_00  Intake & Normalization      ─ Parse conditions + R&S documents + loan/eligibility, normalize, build scenario
-STEP_01  Candidate Matching          ─ Associate docs⇄conditions: result_document_ids (authoritative) + LLM matching over the full document inventory (type + extracted_fields)
+STEP_00  Intake & Normalization      ─ Parse conditions + R&S documents (incl. OCR) + loan/eligibility, normalize, build scenario
+STEP_01  Candidate Matching          ─ Associate docs⇄conditions: result_document_ids (authoritative) + an OCR relevance check (first pages, escalate to full) over the full document inventory (type + extracted_fields + OCR)
 STEP_02  Income Evaluation           ─ Deep fulfillment reasoning for income conditions
 STEP_03  Assets & Reserves Evaluation─ ... asset/reserves conditions
 STEP_04  Credit Evaluation           ─ ... credit conditions (incl. identity, housing history, undisclosed property)
@@ -34,19 +34,25 @@ STEP_07  Aggregation & HIL Packaging ─ Merge verdicts, derive status, flag rev
 ```
 
 > There is no document-extraction/classification step: the documents are already
-> racked & stacked upstream and arrive pre-classified as part of the input.
+> racked & stacked upstream and arrive pre-classified (with OCR) as part of the input.
 
 ### Key Design Decisions
 
-- **Runs after preconditions**: inputs are the loan scenario, eligibility output, and
-  the R&S document set — the same upstream artifacts `predicted-conditions` uses.
-- **Active document⇄condition matching**: conditions usually arrive **without**
-  pre-linked documents, so STEP_01 actively associates them. Any
-  `result_document_ids` present are honored as authoritative; otherwise the LLM
-  matches each condition against the full document inventory (type +
-  `extracted_fields`), with a cheap deterministic shortlist for recall.
+- **Conditions come from Encompass**: most are custom free-text conditions typed by
+  underwriters; some are default/automated conditions. They usually arrive
+  **without** pre-linked documents.
+- **OCR-driven document⇄condition matching**: STEP_01 actively associates documents.
+  Any `result_document_ids` present are honored as authoritative; otherwise a cheap
+  deterministic shortlist surfaces plausible docs and the agent runs an **OCR
+  relevance check** — reading each document's first OCR pages (`ocr_preview`) and
+  escalating to the full OCR via `get_document_ocr` only when inconclusive — to
+  decide whether the document is within the condition's context.
+- **OCR availability**: the R&S manifest references per-document OCR under a
+  top-level `artifacts` array (`type: "ocr"`). This engine assumes that OCR is
+  **dereferenced/inlined** by the time the manifest arrives, and splits it into
+  pages so steps can read the first pages first and pull the full text on demand.
 - **Agentic, not rule-coded**: Steps 02–06 use the LLM to reason over each document's
-  **structured extracted fields** (the R&S output) rather than hard-coded checks,
+  **structured extracted fields** plus its **OCR text** rather than hard-coded checks,
   mirroring `predicted-conditions`.
 - **Guidelines as a scoped reference**: during evaluation the agent can call
   `load_guideline_sections` to consult `data/guidelines.md` (NQMF) — strictly to
@@ -69,8 +75,8 @@ Passed as raw strings (the agent parses them itself):
 
 | Input | Format | Description |
 |-------|--------|-------------|
-| `conditions_json` | JSON | Conditions to evaluate, in the LOS/Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`) |
-| `documents_json` | JSON | Rack & stack (R&S) output — submitted documents as a manifest: each has `id`, a `category` (type) and `metadata` of **structured extracted fields** (no raw OCR text) |
+| `conditions_json` | JSON | Conditions to evaluate, in the Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`). A leading log/prefix line is tolerated. |
+| `documents_json` | JSON | Rack & stack (R&S) manifest — submitted documents: each has `id`, a `category` (type) and `metadata` of **structured extracted fields**, plus per-document **OCR** referenced under a top-level `artifacts` array (`type: "ocr"`), assumed dereferenced/inlined |
 | `eligibility_json` | JSON (optional) | Eligibility engine output (`application_data`, `eligible_programs`) |
 | `loan_file_xml` | MISMO XML (optional) | Loan scenario for additional context |
 
@@ -178,11 +184,12 @@ sbiq-conditions-ai/
 │   ├── __init__.py           # Exports ALL_TOOLS
 │   ├── general.py            # write_todo, save_step_report, get_workflow_status
 │   ├── intake_tools.py       # STEP_00 (parse_conditions, parse_documents, build_eval_scenario)
-│   ├── matching_tools.py     # STEP_01 (candidate matching)
+│   ├── matching_tools.py     # STEP_01 (candidate matching + get_document_ocr relevance check)
 │   ├── evaluation_tools.py   # STEP_02–06 (shared getter, load_guideline_sections, per-category storers)
 │   ├── aggregation_tools.py  # STEP_07
 │   └── shared/
-│       ├── normalize.py      # LOS condition + R&S document + verdict normalization, HIL gating
+│       ├── normalize.py      # Encompass condition + R&S document (incl. OCR) + verdict normalization, HIL gating
+│       ├── ocr.py            # OCR page-splitting, first-pages/full previews, artifact merge
 │       ├── matching.py       # result_document_ids + deterministic cheap-filter matcher
 │       ├── evaluation.py     # Category context builder + evaluation storage
 │       └── guidelines.py     # NQMF guidelines parser (section lookup)

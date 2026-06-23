@@ -12,6 +12,7 @@ from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
 from tools.shared.normalize import normalize_evaluations
+from tools.shared.ocr import first_pages
 
 # Module-output storage key per evaluation group (group name == key).
 GROUP_DEFAULT_CATEGORY = {
@@ -22,15 +23,15 @@ GROUP_DEFAULT_CATEGORY = {
     "other": "other",
 }
 
-_TEXT_CAP = 8000  # cap document text per doc to keep context bounded
+_EVAL_PREVIEW_PAGES = 4  # OCR pages to surface per candidate doc during evaluation
 
 
 def build_category_context(state: dict, eval_group: str) -> dict:
     """
     Assemble the conditions belonging to `eval_group` together with their
-    candidate documents. Each candidate carries the document type and its
-    structured extracted fields (the R&S output), plus raw OCR text only when it
-    happens to be available.
+    candidate documents. Each candidate carries the document type, its structured
+    extracted fields (the R&S output), and an OCR preview (first pages). The agent
+    can call `get_document_ocr` to read the full OCR when the preview is insufficient.
     """
     conditions: list[dict] = state.get("conditions", []) or []
     documents: list[dict] = state.get("evidence", []) or []
@@ -57,10 +58,11 @@ def build_category_context(state: dict, eval_group: str) -> dict:
                 "match_confidence": cand.get("confidence") if isinstance(cand, dict) else None,
                 "match_source": cand.get("source") if isinstance(cand, dict) else None,
             }
-            # Include raw OCR text only when present (R&S usually omits it).
-            text = doc.get("document_text", "") or ""
-            if text:
-                block["document_text"] = text[:_TEXT_CAP] + ("...[truncated]" if len(text) > _TEXT_CAP else "")
+            # Surface an OCR preview (first pages); full OCR via get_document_ocr.
+            pages = doc.get("ocr_pages") or []
+            if pages:
+                block["ocr_preview"] = first_pages(pages, n=_EVAL_PREVIEW_PAGES)
+                block["ocr_total_pages"] = len(pages)
             ev_blocks.append(block)
         context_conditions.append({
             "condition_id": cid,

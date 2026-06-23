@@ -8,7 +8,10 @@ purchase agreement** conditions.
 
 ## Actions
 
-1. Call `get_conditions_to_evaluate` with `category="property"`.
+1. Call `get_conditions_to_evaluate` with `category="property"`. Each candidate
+   document carries its `document_type`, `extracted_fields`, and an `ocr_preview`;
+   call `get_document_ocr(evidence_id, full=True)` when you need the full OCR
+   (e.g. to read the mortgagee clause, schedule B exceptions, or tax due dates).
 2. If `condition_count` is 0, call `save_step_report` and advance.
 3. If a condition is ambiguous or you need the standard a document must meet
    (e.g. appraisal/2nd-appraisal triggers, insurance coverage/dec requirements,

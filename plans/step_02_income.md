@@ -7,19 +7,22 @@ Evaluate whether the candidate documents satisfy each **income** condition.
 ## Actions
 
 1. Call `get_conditions_to_evaluate` with `category="income"`. You receive each
-   income condition and its candidate documents — each candidate's `document_type`
-   and its `extracted_fields` (the structured fields rack & stack pulled from the
-   document; raw text is included only if it happens to be available).
+   income condition and its candidate documents — each candidate's `document_type`,
+   its `extracted_fields` (the structured fields rack & stack pulled from the
+   document), and an `ocr_preview` (first OCR pages).
 2. If `condition_count` is 0, immediately call `save_step_report` and advance.
-3. If a condition is ambiguous or you need the standard a document must meet
+3. If a candidate's `ocr_preview` isn't enough to decide (the figure/clause you need
+   is deeper in the document), call `get_document_ocr(evidence_id)` for more pages or
+   `get_document_ocr(evidence_id, full=True)` for the full OCR.
+4. If a condition is ambiguous or you need the standard a document must meet
    (e.g. how many months of bank statements, which tax years/schedules, signed
    P&L recency), call `load_guideline_sections` for the relevant section(s) —
    see "Guidelines (reference)" below.
-4. For each condition, reason as a senior underwriter over the documents'
-   `extracted_fields` (and text if available) and produce one evaluation. Record
-   any sections you relied on in `guideline_refs`.
-5. Call `store_income_evaluations` with the list of evaluations.
-6. Call `save_step_report` for `STEP_02`.
+5. For each condition, reason as a senior underwriter over the documents'
+   `extracted_fields` and OCR text and produce one evaluation. Record any sections
+   you relied on in `guideline_refs`.
+6. Call `store_income_evaluations` with the list of evaluations.
+7. Call `save_step_report` for `STEP_02`.
 
 ## Guidelines (reference)
 

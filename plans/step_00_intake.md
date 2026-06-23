@@ -3,18 +3,19 @@
 ## Role
 
 Parse and normalize the inputs so every downstream step works from a clean,
-consistent data model. This engine runs **after preconditions**: the documents
-have already been racked & stacked upstream, so you only parse — you do not
-extract or classify documents here.
+consistent data model. The documents have already been racked & stacked (and OCR'd)
+upstream, so you only parse — you do not extract or classify documents here.
 
 ## Inputs (already in state)
 
-- `conditions_json` — conditions to evaluate, in the LOS/Encompass export shape
+- `conditions_json` — conditions to evaluate, in the Encompass export shape
   (`{"condition": {"data": {"Title","Description","Category",...},
-  "result_document_ids": [...]}}`).
-- `documents_json` — rack & stack (R&S) output: the documents the borrower
+  "result_document_ids": [...]}}`). Conditions are typed by underwriters (mostly
+  free-text) plus some default/automated conditions.
+- `documents_json` — rack & stack (R&S) manifest: the documents the borrower
   submitted, each classified into a `category` (type) and indexed into structured
-  extracted fields under `metadata` (raw OCR text is not provided).
+  extracted fields under `metadata`, plus per-document OCR (referenced under the
+  manifest's `artifacts`, assumed dereferenced/inlined and split into pages here).
 - `loan_file_xml` — MISMO XML loan scenario (optional context).
 - `eligibility_json` — eligibility engine output (optional context).
 
@@ -24,7 +25,8 @@ extract or classify documents here.
    (income / assets / credit / property / other), and preserves each condition's
    `result_document_ids` (the documents already submitted for it).
 2. Call `parse_documents`. Normalizes the R&S documents (id, type from `category`,
-   and `extracted_fields` from `metadata`).
+   `extracted_fields` from `metadata`, and OCR text — merged from the manifest's
+   `artifacts` and split into pages).
 3. Call `build_eval_scenario`. Summarizes counts, group breakdown, document types,
    eligible programs, and loan-level context (from eligibility `application_data`
    and the MISMO XML).

@@ -116,5 +116,31 @@
         "confidence": 0.93
       }
     }
+  ],
+  "artifacts": [
+    {
+      "type": "ocr",
+      "document_id": 26030,
+      "source": { "bucket": "tasktile-dev", "key": "clients/.../ocr/26030.txt" },
+      "text": "HOMEOWNERS INSURANCE - DECLARATIONS PAGE\nNamed Insured: John Q Borrower\nInsured Property: 742 Evergreen Terrace\nPolicy Period: 10/30/2025 to 10/30/2026\nDwelling (Coverage A): $410,000\nWindstorm or Hail: INCLUDED\nAnnual Premium: $2,180.00\f-- Page 2 --\nADDITIONAL INTERESTS / LOSS PAYEE\nThis page intentionally lists additional interests.\nNo mortgagee clause is shown on this policy at this time.\nContact agent to add lender ISAOA/ATIMA and loan number prior to closing."
+    },
+    {
+      "type": "ocr",
+      "document_id": 26013,
+      "source": { "bucket": "tasktile-dev", "key": "clients/.../ocr/26013.txt" },
+      "text": "PRELIMINARY TITLE COMMITMENT\nSchedule A\nProposed Insured: Lender\nProperty: 742 Evergreen Terrace\nVesting: John Q Borrower, a married man\f-- Page 2 --\nSchedule B - Exceptions\n1. Taxes for the year 2025 and subsequent years.\n2. Easement recorded in Book 1123, Page 45.\f-- Page 3 --\nCHAIN OF TITLE (24 MONTHS)\nNo intervening transfers within the last 24 months.\nLast conveyance recorded 03/2019 to current owner."
+    },
+    {
+      "type": "ocr",
+      "document_id": 26042,
+      "source": { "bucket": "tasktile-dev", "key": "clients/.../ocr/26042.txt" },
+      "text": "OPERATING AGREEMENT OF SUNSET HOLDINGS LLC\nState of Formation: Florida\nEffective Date: January 1, 2019\f-- Page 2 --\nARTICLE IV - MEMBERS AND OWNERSHIP\nThe Members and their respective Membership Interests are:\n  John Q Borrower ......... 50%\n  Jane A Partner .......... 50%\nManaging Member: John Q Borrower"
+    },
+    {
+      "type": "ocr",
+      "document_id": 25988,
+      "source": { "bucket": "tasktile-dev", "key": "clients/.../ocr/25988.txt" },
+      "text": "EARNEST MONEY DEPOSIT CHECK\nPay to the order of: ABC Title Company\nAmount: $5,000.00\nCheck No. 1043   Date 10/15/2025\nMemo: Earnest Money Deposit - 742 Evergreen Terrace\nDrawer: John Q Borrower"
+    }
   ]
 }

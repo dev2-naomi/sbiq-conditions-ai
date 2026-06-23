@@ -42,14 +42,19 @@ def run_offline() -> int:
         normalize_conditions,
         normalize_documents,
     )
+    from tools.shared.ocr import merge_ocr_artifacts
 
     data = build_input()
     conditions = normalize_conditions(json.loads(data["conditions_json"]))
     docs_raw = json.loads(data["documents_json"])
-    documents = normalize_documents(docs_raw.get("documents", docs_raw))
+    raw_docs = docs_raw.get("documents", docs_raw)
+    raw_docs = merge_ocr_artifacts(raw_docs, docs_raw.get("artifacts", []))
+    documents = normalize_documents(raw_docs)
     candidate_map = deterministic_match(conditions, documents)
 
-    print(f"Parsed {len(conditions)} conditions, {len(documents)} submitted docs.\n")
+    with_ocr = sum(1 for d in documents if d.get("has_ocr"))
+    print(f"Parsed {len(conditions)} conditions, {len(documents)} submitted docs "
+          f"({with_ocr} with OCR).\n")
     print("Evaluation groups:",
           {c["id"]: c["eval_group"] for c in conditions}, "\n")
     print("Candidate matches (deterministic cheap filter):")

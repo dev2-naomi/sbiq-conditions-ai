@@ -6,7 +6,10 @@ Evaluate whether the candidate documents satisfy each **assets/reserves** condit
 
 ## Actions
 
-1. Call `get_conditions_to_evaluate` with `category="assets"`.
+1. Call `get_conditions_to_evaluate` with `category="assets"`. Each candidate
+   document carries its `document_type`, `extracted_fields`, and an `ocr_preview`;
+   call `get_document_ocr(evidence_id, full=True)` when you need the full OCR
+   (e.g. to read balances, owners, or dates not in the preview).
 2. If `condition_count` is 0, call `save_step_report` and advance.
 3. If a condition is ambiguous or you need the standard a document must meet
    (e.g. months of statements, reserve requirements, large-deposit sourcing,

@@ -73,9 +73,9 @@ def _last_value(old: Any, new: Any) -> Any:  # noqa: ARG001
 
 
 class EvaluatorState(TypedDict, total=False):
-    # ---- Input fields (preconditions-style; this engine runs AFTER preconditions) ----
-    conditions_json: str       # Raw JSON list of conditions to evaluate (LOS/Encompass shape)
-    documents_json: str        # Rack & stack (R&S) output — documents the borrower submitted
+    # ---- Input fields ----
+    conditions_json: str       # Raw JSON list of conditions to evaluate (Encompass shape)
+    documents_json: str        # Rack & stack (R&S) manifest — documents the borrower submitted (incl. OCR)
     loan_file_xml: str         # MISMO XML loan scenario (optional context)
     eligibility_json: str      # Eligibility engine output (optional context)
     env: str                   # "Test" | "Prod"
@@ -128,7 +128,7 @@ _DEFAULT_INITIAL_PROMPT = (
     "build_eval_scenario (the STEP_00 report is rejected otherwise).\n\n"
     "Step sequence:\n"
     "  STEP_00: parse_conditions, parse_documents, build_eval_scenario\n"
-    "  STEP_01: deterministic_candidate_match, store_candidate_matches\n"
+    "  STEP_01: deterministic_candidate_match, get_document_ocr, store_candidate_matches\n"
     "  STEP_02: get_conditions_to_evaluate('income'), store_income_evaluations\n"
     "  STEP_03: get_conditions_to_evaluate('assets'), store_assets_evaluations\n"
     "  STEP_04: get_conditions_to_evaluate('credit'), store_credit_evaluations\n"
@@ -136,14 +136,17 @@ _DEFAULT_INITIAL_PROMPT = (
     "  STEP_06: get_conditions_to_evaluate('other'), store_other_evaluations\n"
     "  STEP_07: merge_evaluations, generate_final_output\n\n"
     "For STEP_01: pre-links (result_document_ids) are usually empty, so actively "
-    "associate documents to conditions using the document_inventory (document_type + "
-    "extracted_fields), not just the deterministic proposals; prefer recall.\n"
+    "associate documents to conditions using the document_inventory (document_type, "
+    "extracted_fields, and the ocr_preview), not just the deterministic proposals. "
+    "Run a relevance check against each document's OCR — read the first pages, and "
+    "call get_document_ocr(full=True) only when the preview is inconclusive; prefer recall.\n"
     "For STEP_02 through STEP_06: first load the category's conditions and their "
     "candidate documents. If a condition is ambiguous or you need the standard a "
     "document must meet, call load_guideline_sections as a REFERENCE (the condition "
     "text is always primary; never invent requirements). Then reason as a senior "
-    "underwriter over each document's structured extracted_fields (and raw text if "
-    "available) to decide fulfillment for each condition. "
+    "underwriter over each document's structured extracted_fields and OCR text "
+    "(use get_document_ocr to read the full OCR when needed) to decide fulfillment "
+    "for each condition. "
     "Produce one evaluation per condition with result, confidence, satisfied_points, "
     "missing_or_unclear_points, recommended_next_action, and guideline_refs.\n"
     "If a category has no conditions, immediately call save_step_report and move on."

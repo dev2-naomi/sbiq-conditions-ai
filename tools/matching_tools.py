@@ -17,6 +17,7 @@ from langgraph.types import Command
 from typing_extensions import Annotated
 
 from tools.shared.matching import deterministic_match
+from tools.shared.ocr import PREVIEW_PAGES, first_pages, full_text
 
 _FIELD_VALUE_CAP = 200
 
@@ -43,8 +44,10 @@ def deterministic_candidate_match(
       - `conditions`: each condition's label/body/category, its authoritative
         `prelinked_document_ids` (result_document_ids — usually empty), and a cheap
         `proposed_candidates` shortlist (keyword/field heuristic — a HINT only).
-      - `document_inventory`: EVERY submitted document with its `document_type` and
-        `extracted_fields`, so you can match documents the shortlist missed.
+      - `document_inventory`: EVERY submitted document with its `document_type`,
+        `extracted_fields`, and an `ocr_preview` (first ~2 OCR pages). When the
+        preview is inconclusive, call `get_document_ocr` to read more pages or the
+        full OCR before deciding relevance.
 
     You then decide the real map and pass it to `store_candidate_matches`. This is
     triage (plausibility), NOT a fulfillment decision.
@@ -58,14 +61,16 @@ def deterministic_candidate_match(
     documents = s.get("evidence", []) or []
     proposed = deterministic_match(conditions, documents, threshold=threshold)
 
-    inventory = [
-        {
+    inventory = []
+    for d in documents:
+        pages = d.get("ocr_pages") or []
+        inventory.append({
             "evidence_id": d.get("id"),
             "document_type": d.get("detected_document_type"),
             "extracted_fields": _compact_fields(d.get("extracted_fields") or {}),
-        }
-        for d in documents
-    ]
+            "ocr_preview": first_pages(pages, n=PREVIEW_PAGES) if pages else "",
+            "ocr_total_pages": len(pages),
+        })
 
     conditions_view = []
     for c in conditions:
@@ -86,9 +91,64 @@ def deterministic_candidate_match(
         "total_documents": len(documents),
         "total_proposed_links": total,
         "note": "Pre-links are usually empty — actively match each condition against "
-                "the document_inventory using document_type AND extracted_fields, not "
-                "just the proposed_candidates. Prefer recall. Then call "
-                "store_candidate_matches with {condition_id: [evidence_id, ...]}.",
+                "the document_inventory using document_type, extracted_fields AND the "
+                "ocr_preview. Read each candidate's first OCR pages to confirm the "
+                "document is within the condition's context; escalate to "
+                "get_document_ocr(full=True) only when the preview is inconclusive. "
+                "Prefer recall. Then call store_candidate_matches with "
+                "{condition_id: [evidence_id, ...]}.",
+    }
+
+
+@tool
+def get_document_ocr(
+    evidence_id: str,
+    full: bool = False,
+    max_pages: int = PREVIEW_PAGES,
+    tool_call_id: Annotated[str, InjectedToolCallId] = "",
+    state: Annotated[dict, InjectedState] = None,
+) -> dict:
+    """
+    Fetch the OCR text for one document, to confirm whether it is relevant to (or
+    satisfies) a condition. Read the first pages first; escalate to the full OCR
+    only when those pages are inconclusive.
+
+    Args:
+        evidence_id: the document's evidence id (from the document_inventory /
+                     candidate_documents).
+        full: when True, return the full OCR text (capped); otherwise return only
+              the first `max_pages` pages.
+        max_pages: number of leading pages to return when `full` is False.
+    """
+    s = state or {}
+    documents = s.get("evidence", []) or []
+    doc = next((d for d in documents if str(d.get("id")) == str(evidence_id)), None)
+    if not doc:
+        return {"evidence_id": evidence_id, "error": "no document with that evidence_id"}
+
+    pages = doc.get("ocr_pages") or []
+    if not pages:
+        return {
+            "evidence_id": evidence_id,
+            "document_type": doc.get("detected_document_type"),
+            "ocr_available": False,
+            "note": "No OCR text for this document; rely on extracted_fields.",
+        }
+
+    if full:
+        text = full_text(pages)
+        returned = "full"
+    else:
+        text = first_pages(pages, n=max_pages)
+        returned = f"first_{min(max_pages, len(pages))}_pages"
+
+    return {
+        "evidence_id": evidence_id,
+        "document_type": doc.get("detected_document_type"),
+        "ocr_available": True,
+        "total_pages": len(pages),
+        "returned": returned,
+        "ocr_text": text,
     }
 
 

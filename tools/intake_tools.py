@@ -21,6 +21,7 @@ from langgraph.types import Command
 from typing_extensions import Annotated
 
 from tools.shared.normalize import normalize_conditions, normalize_documents
+from tools.shared.ocr import merge_ocr_artifacts
 
 
 def _loads(raw, default):
@@ -31,7 +32,19 @@ def _loads(raw, default):
     try:
         return json.loads(raw)
     except (json.JSONDecodeError, TypeError):
-        return default
+        pass
+    # Tolerate a leading log/prefix line (e.g. Encompass exports that arrive as
+    # "... INFO - Raw conditions: [ ... ]"): retry from the first JSON bracket.
+    if isinstance(raw, str):
+        for opener, closer in (("[", "]"), ("{", "}")):
+            start = raw.find(opener)
+            end = raw.rfind(closer)
+            if 0 <= start < end:
+                try:
+                    return json.loads(raw[start : end + 1])
+                except (json.JSONDecodeError, TypeError):
+                    continue
+    return default
 
 
 @tool
@@ -72,20 +85,32 @@ def parse_documents(
     """
     Parse and normalize the rack & stack (R&S) document output (documents_json):
     the documents the borrower submitted, already classified into a category and
-    indexed into structured extracted fields (metadata) upstream. Stored in state
-    for matching and evaluation.
+    indexed into structured extracted fields (metadata) upstream. Per-document OCR
+    text — referenced by the manifest's top-level `artifacts` (type "ocr") and
+    assumed dereferenced/inlined upstream — is merged onto each document and split
+    into pages for relevance triage + evaluation. Stored in state for downstream steps.
     """
     s = state or {}
     raw = _loads(s.get("documents_json"), [])
+
+    artifacts: list = []
     if isinstance(raw, dict):
+        artifacts = raw.get("artifacts") or []
         raw = raw.get("documents", raw.get("evidence", raw.get("items", [])))
-    documents = normalize_documents(raw)
+
+    raw_docs = raw if isinstance(raw, list) else []
+    if artifacts:
+        raw_docs = merge_ocr_artifacts(raw_docs, artifacts)
+
+    documents = normalize_documents(raw_docs)
 
     types = Counter(d.get("detected_document_type") or "unclassified" for d in documents)
+    with_ocr = sum(1 for d in documents if d.get("has_ocr"))
     return Command(update={
         "evidence": documents,
         "messages": [ToolMessage(
-            f"Parsed {len(documents)} submitted document(s). Types: {dict(types)}",
+            f"Parsed {len(documents)} submitted document(s). Types: {dict(types)}. "
+            f"{with_ocr} document(s) have OCR text.",
             tool_call_id=tool_call_id,
         )],
     })

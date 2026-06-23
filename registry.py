@@ -51,11 +51,12 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 ]
         },
         "STEP_01": {
-                "name": "Candidate Matching (Cheap Filter)",
-                "description": "Link conditions to the documents that may satisfy them. Pre-links from each condition's result_document_ids are authoritative; a deterministic keyword pass and LLM triage supplement them.",
+                "name": "Candidate Matching (Relevance Check)",
+                "description": "Link conditions to the documents that may satisfy them. Pre-links from each condition's result_document_ids are authoritative; a deterministic keyword pass, an OCR relevance check (first pages, escalate to full), and LLM triage supplement them.",
                 "plan_file": "step_01_candidate_matching.md",
                 "tools": [
                         "deterministic_candidate_match",
+                        "get_document_ocr",
                         "store_candidate_matches"
                 ],
                 "substeps": [
@@ -68,13 +69,20 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                         },
                         {
                                 "id": "1.2",
+                                "name": "OCR relevance check (first pages, escalate to full)",
+                                "tools": [
+                                        "get_document_ocr"
+                                ]
+                        },
+                        {
+                                "id": "1.3",
                                 "name": "Store final candidate map",
                                 "tools": [
                                         "store_candidate_matches"
                                 ]
                         },
                         {
-                                "id": "1.3",
+                                "id": "1.4",
                                 "name": "Save step report",
                                 "tools": [
                                         "save_step_report"
@@ -88,6 +96,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_02_income.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "get_document_ocr",
                         "load_guideline_sections",
                         "store_income_evaluations"
                 ],
@@ -128,6 +137,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_03_assets.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "get_document_ocr",
                         "load_guideline_sections",
                         "store_assets_evaluations"
                 ],
@@ -168,6 +178,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_04_credit.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "get_document_ocr",
                         "load_guideline_sections",
                         "store_credit_evaluations"
                 ],
@@ -208,6 +219,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_05_property.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "get_document_ocr",
                         "load_guideline_sections",
                         "store_property_evaluations"
                 ],
@@ -248,6 +260,7 @@ STEP_CONFIG: dict[str, dict[str, Any]] = {
                 "plan_file": "step_06_misc.md",
                 "tools": [
                         "get_conditions_to_evaluate",
+                        "get_document_ocr",
                         "load_guideline_sections",
                         "store_other_evaluations"
                 ],
