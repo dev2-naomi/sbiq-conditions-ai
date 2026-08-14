@@ -280,7 +280,7 @@ _CO_RE = re.compile(r"\bco[\s\-]?(?:borrower|applicant|signer)s?\b", re.IGNORECA
 # "borrower" usage like "the borrower must provide…", which is not party-specific).
 _PRIMARY_MARKERS = re.compile(
     r"for (?:the )?borrower\b"
-    r"|\bborrower'?s\b"
+    r"|\bborrower['\u2019]s\b"          # possessive only ("borrower's"), NOT plural "borrowers"
     r"|\(borrower\)"
     r"|\bborrower\s*:"
     r"|[-\u2013\u2014]\s*borrower\b"
