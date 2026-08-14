@@ -6,6 +6,8 @@ Inputs (preconditions-style, already in state):
 - documents_json    : rack & stack (R&S) output — the documents the borrower submitted
 - loan_file_xml     : MISMO XML loan scenario (optional context)
 - eligibility_json  : eligibility engine output (optional context)
+- borrower          : primary borrower identity (optional; dict or name string)
+- coborrower        : co-borrower identity (optional; empty ⇒ single-party loan)
 """
 
 from __future__ import annotations
@@ -22,6 +24,11 @@ from typing_extensions import Annotated
 
 from tools.shared.normalize import normalize_conditions, normalize_documents
 from tools.shared.ocr import merge_ocr_artifacts
+from tools.shared.parties import (
+    assign_doc_parties,
+    condition_target_parties,
+    resolve_parties,
+)
 
 
 def _loads(raw, default):
@@ -45,6 +52,29 @@ def _loads(raw, default):
                 except (json.JSONDecodeError, TypeError):
                     continue
     return default
+
+
+def _party_input(raw):
+    """Coerce a borrower/coborrower input into a dict/string resolve_parties accepts.
+
+    Accepts a dict, a JSON string ('{"first_name": ...}'), or a plain name string
+    ("John Q Borrower"). Empty values become None (single-party / fallback path).
+    """
+    if raw is None or raw == "" or raw == {}:
+        return None
+    if isinstance(raw, dict):
+        return raw or None
+    if isinstance(raw, str):
+        s = raw.strip()
+        if not s:
+            return None
+        if s[0] in "{[":
+            try:
+                return json.loads(s) or None
+            except (json.JSONDecodeError, TypeError):
+                return s
+        return s
+    return raw
 
 
 @tool
@@ -149,6 +179,11 @@ def build_eval_scenario(
     documents plus the loan scenario (loan_file_xml) and eligibility output
     (eligibility_json). The eligibility application_data, when present, is the
     authoritative source for loan-level numbers.
+
+    Also resolves the loan's parties (primary borrower + optional co-borrower) and
+    stamps each document with the party tag(s) it belongs to (`party_tags`) and each
+    condition with the party tag(s) it applies to (`target_parties`), so STEP_01 can
+    scope candidate documents per party. For single-borrower loans this is a no-op.
     """
     s = state or {}
     conditions = s.get("conditions", []) or []
@@ -162,33 +197,64 @@ def build_eval_scenario(
 
     xml_scenario = _light_xml_scenario(s.get("loan_file_xml") or "")
 
+    # ---- Party resolution + attribution ----
+    parties = resolve_parties(
+        borrower=_party_input(s.get("borrower")),
+        coborrower=_party_input(s.get("coborrower")),
+        eligibility=eligibility,
+        xml_scenario=xml_scenario,
+    )
+    multi_party = len(parties) > 1
+
+    documents = [{**d, "party_tags": assign_doc_parties(d, parties)} for d in documents]
+    conditions = [{**c, "target_parties": condition_target_parties(c, parties)} for c in conditions]
+
+    borrowers_view = [
+        {"name": p["name"], "role": p["role"], "tag": p["tag"]} for p in parties
+    ]
+
     scenario = {
         "loan": {
             "loan_id": conditions[0].get("loan_id") if conditions else None,
-            "borrower_name": app_data.get("BorrowerName") or xml_scenario.get("borrower_name"),
+            "borrower_name": (parties[0]["name"] if parties else None)
+            or app_data.get("BorrowerName") or xml_scenario.get("borrower_name"),
             "property_state": app_data.get("State") or xml_scenario.get("property_state"),
             "property_city": app_data.get("City") or xml_scenario.get("property_city"),
             "loan_amount": app_data.get("LoanAmount"),
             "ltv": app_data.get("LTV"),
             "fico": app_data.get("FICO"),
         },
+        "borrowers": borrowers_view,
         "eligible_programs": eligible_programs,
         "counts": {
             "conditions": len(conditions),
             "submitted_documents": len(documents),
+            "parties": len(parties),
         },
         "conditions_by_group": dict(Counter(c.get("eval_group") for c in conditions)),
         "document_types": dict(Counter(d.get("detected_document_type") or "unclassified" for d in documents)),
     }
 
+    party_note = ""
+    if multi_party:
+        co = next((p for p in parties if p["tag"] == "coborrower"), None)
+        party_note = (
+            f" Parties: borrower={parties[0]['name']}"
+            + (f", coborrower={co['name']}." if co else ".")
+            + " Documents and conditions tagged per party for scoping."
+        )
+
     return Command(update={
         "eval_scenario": scenario,
+        "conditions": conditions,
+        "evidence": documents,
+        "parties": parties,
         "messages": [ToolMessage(
             "Built evaluation scenario: "
             f"{scenario['counts']['conditions']} conditions, "
             f"{scenario['counts']['submitted_documents']} documents. "
             f"Groups: {scenario['conditions_by_group']}. "
-            f"Eligible programs: {eligible_programs}.",
+            f"Eligible programs: {eligible_programs}." + party_note,
             tool_call_id=tool_call_id,
         )],
     })

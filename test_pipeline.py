@@ -30,6 +30,10 @@ def build_input() -> dict:
         "documents_json": documents,
         "eligibility_json": eligibility,
         "loan_file_xml": "",
+        # Party identities (optional). The bundled sample is a single-borrower loan;
+        # leave `coborrower` empty. Pass a dict or a plain name string.
+        "borrower": "John Q Borrower",
+        "coborrower": "",
         "env": "Test",
     }
 
@@ -74,8 +78,74 @@ def run_offline() -> int:
         print(f"  {cond['id']}: {ev['result']} -> {status['overall_status']} "
               f"(needs_human_review={status['needs_human_review']})")
 
+    run_party_check()
+
     print("\nOffline structural check passed.")
     return 0
+
+
+def run_party_check() -> None:
+    """Exercise borrower / co-borrower resolution + attribution deterministically.
+
+    Uses a synthetic 2-party scenario (two same-surname parties, an input typo, and
+    a shared loan-level doc) to prove resolution, per-document assignment, per-
+    condition targeting, and candidate scoping all route correctly.
+    """
+    from tools.shared.parties import (
+        assign_doc_parties,
+        condition_target_parties,
+        doc_matches_condition_party,
+        resolve_parties,
+    )
+
+    print("\n=== Party resolution & attribution (synthetic co-borrower) ===")
+
+    # Note the deliberate typo in the borrower input ("Isral") — resolution keeps it
+    # as authoritative; fuzzy matching still ties the VVOE (spelled "Israel") to it.
+    parties = resolve_parties(
+        borrower={"first_name": "Isral", "last_name": "Ortiz"},
+        coborrower={"first_name": "Natalya", "last_name": "Ortiz"},
+    )
+    print("Parties:", [(p["tag"], p["name"]) for p in parties])
+
+    docs = [
+        {"id": "D_VVOE", "detected_document_type": "Written VOE",
+         "extracted_fields": {"employee": "Israel Ortiz", "employer": "Acme Co"}},
+        {"id": "D_VOI", "detected_document_type": "Verification of Income",
+         "extracted_fields": {"borrowers": [{"firstName": "Natalya", "lastName": "Ortiz"}]}},
+        {"id": "D_APPRAISAL", "detected_document_type": "Appraisal",
+         "extracted_fields": {"property_address": "1 Main St"}},
+    ]
+    for d in docs:
+        d["party_tags"] = assign_doc_parties(d, parties)
+        print(f"  doc {d['id']:12s} -> party_tags={d['party_tags']}")
+
+    conds = [
+        {"id": "C_BORR_VOE", "label": "Income: VVOE for Borrower",
+         "body": "Provide a written VOE for the Borrower."},
+        {"id": "C_COBORR_VOE", "label": "Income: VOI for Co-Borrower",
+         "body": "Provide verification of income for the Co-Borrower."},
+        {"id": "C_APPRAISAL", "label": "Property: Appraisal",
+         "body": "Provide a full interior appraisal (1004)."},
+    ]
+    for c in conds:
+        c["target_parties"] = condition_target_parties(c, parties)
+        matches = [d["id"] for d in docs if doc_matches_condition_party(d, c, parties)]
+        print(f"  cond {c['id']:14s} target={c['target_parties']} "
+              f"-> eligible docs={matches}")
+
+    # Assertions: the borrower VOE and co-borrower VOI must NOT cross parties.
+    voe = next(c for c in conds if c["id"] == "C_BORR_VOE")
+    voi = next(c for c in conds if c["id"] == "C_COBORR_VOE")
+    appr = next(c for c in conds if c["id"] == "C_APPRAISAL")
+    dmap = {d["id"]: d for d in docs}
+    assert doc_matches_condition_party(dmap["D_VVOE"], voe, parties)
+    assert not doc_matches_condition_party(dmap["D_VOI"], voe, parties)
+    assert doc_matches_condition_party(dmap["D_VOI"], voi, parties)
+    assert not doc_matches_condition_party(dmap["D_VVOE"], voi, parties)
+    # Loan-level appraisal is available to any party's condition.
+    assert doc_matches_condition_party(dmap["D_APPRAISAL"], appr, parties)
+    print("Party routing assertions passed (no borrower<->co-borrower leakage).")
 
 
 def run_full() -> int:

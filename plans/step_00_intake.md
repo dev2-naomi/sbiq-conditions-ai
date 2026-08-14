@@ -18,6 +18,9 @@ upstream, so you only parse — you do not extract or classify documents here.
   manifest's `artifacts`, assumed dereferenced/inlined and split into pages here).
 - `loan_file_xml` — MISMO XML loan scenario (optional context).
 - `eligibility_json` — eligibility engine output (optional context).
+- `borrower` / `coborrower` — the loan's party identities (optional; dict
+  `{first_name, last_name}` or a name string). When `coborrower` is empty/absent the
+  loan is single-party.
 
 ## Actions
 
@@ -29,7 +32,12 @@ upstream, so you only parse — you do not extract or classify documents here.
    `artifacts` and split into pages).
 3. Call `build_eval_scenario`. Summarizes counts, group breakdown, document types,
    eligible programs, and loan-level context (from eligibility `application_data`
-   and the MISMO XML).
+   and the MISMO XML). It also **resolves the loan's parties** (primary borrower +
+   optional co-borrower) from the `borrower`/`coborrower` input (falling back to
+   eligibility, then XML), tags each document with the party it belongs to
+   (`party_tags`, via the names in its extracted fields) and each condition with the
+   party it applies to (`target_parties`, via its title/body text). On a
+   single-borrower loan this is a no-op.
 4. Call `save_step_report` with `step_id="STEP_00"`, a one-paragraph summary, and
    `outputs` containing the counts and group breakdown.
 

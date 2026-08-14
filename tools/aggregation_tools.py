@@ -49,6 +49,9 @@ def merge_evaluations(
     conditions = s.get("conditions", []) or []
     evals_by_cid = _collect_evaluations(s.get("module_outputs", {}) or {})
 
+    parties = s.get("parties", []) or []
+    multi_party = len(parties) > 1
+    tag_to_name = {p.get("tag"): p.get("name") for p in parties}
     cond_by_id = {c.get("id"): c for c in conditions}
     merged: list[dict] = []
 
@@ -76,6 +79,12 @@ def merge_evaluations(
             "eval_group": cond.get("eval_group"),
             **status,
         }
+        if multi_party:
+            target_tags = cond.get("target_parties") or [p["tag"] for p in parties]
+            record["party_tags"] = target_tags
+            record["applicable_parties"] = [
+                tag_to_name[t] for t in target_tags if tag_to_name.get(t)
+            ]
         merged.append(record)
 
     # Stable sort: needs_human_review first, then by result severity.
@@ -110,16 +119,26 @@ def generate_final_output(
     by_status = Counter(r.get("overall_status") for r in merged)
     needs_review = sum(1 for r in merged if r.get("needs_human_review"))
 
+    stats = {
+        "total_conditions": len(merged),
+        "needs_human_review": needs_review,
+        "by_result": dict(by_result),
+        "by_overall_status": dict(by_status),
+        "by_category": dict(by_category),
+    }
+
+    parties = s.get("parties", []) or []
+    if len(parties) > 1:
+        by_party: Counter = Counter()
+        for r in merged:
+            for tag in r.get("party_tags") or []:
+                by_party[tag] += 1
+        stats["by_party"] = dict(by_party)
+
     final = {
         "scenario_summary": s.get("eval_scenario", {}),
         "evaluations": merged,
-        "stats": {
-            "total_conditions": len(merged),
-            "needs_human_review": needs_review,
-            "by_result": dict(by_result),
-            "by_overall_status": dict(by_status),
-            "by_category": dict(by_category),
-        },
+        "stats": stats,
     }
 
     return Command(update={

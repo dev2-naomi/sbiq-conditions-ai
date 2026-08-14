@@ -78,6 +78,8 @@ class EvaluatorState(TypedDict, total=False):
     documents_json: str        # Rack & stack (R&S) manifest — documents the borrower submitted (incl. OCR)
     loan_file_xml: str         # MISMO XML loan scenario (optional context)
     eligibility_json: str      # Eligibility engine output (optional context)
+    borrower: Any              # Primary borrower identity (dict {first_name,last_name} or name string) — optional
+    coborrower: Any            # Co-borrower identity (dict/string); empty/absent ⇒ single-party loan — optional
     env: str                   # "Test" | "Prod"
 
     # ---- Message history ----
@@ -87,6 +89,7 @@ class EvaluatorState(TypedDict, total=False):
     eval_scenario: Annotated[NotRequired[dict], _merge_dicts]
     conditions: Annotated[NotRequired[list], _last_value]
     evidence: Annotated[NotRequired[list], _last_value]
+    parties: Annotated[NotRequired[list], _last_value]
     candidate_map: Annotated[NotRequired[dict], _merge_dicts]
     module_outputs: Annotated[NotRequired[dict], _merge_dicts]
     todos: Annotated[NotRequired[list], _append_list]
@@ -140,6 +143,9 @@ _DEFAULT_INITIAL_PROMPT = (
     "extracted_fields, and the ocr_preview), not just the deterministic proposals. "
     "Run a relevance check against each document's OCR — read the first pages, and "
     "call get_document_ocr(full=True) only when the preview is inconclusive; prefer recall.\n"
+    "On multi-party loans (a co-borrower is present), only match a document to a "
+    "condition when their parties overlap (document party_tags ∩ condition "
+    "target_parties); loan-level docs and generic conditions apply to all parties.\n"
     "For STEP_02 through STEP_06: first load the category's conditions and their "
     "candidate documents. If a condition is ambiguous or you need the standard a "
     "document must meet, call load_guideline_sections as a REFERENCE (the condition "

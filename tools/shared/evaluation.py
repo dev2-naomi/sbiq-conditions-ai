@@ -36,6 +36,8 @@ def build_category_context(state: dict, eval_group: str) -> dict:
     conditions: list[dict] = state.get("conditions", []) or []
     documents: list[dict] = state.get("evidence", []) or []
     candidate_map: dict = state.get("candidate_map", {}) or {}
+    parties: list[dict] = state.get("parties", []) or []
+    multi_party = len(parties) > 1
     docs_by_id = {e.get("id"): e for e in documents}
 
     targets = [c for c in conditions if c.get("eval_group") == eval_group]
@@ -58,13 +60,15 @@ def build_category_context(state: dict, eval_group: str) -> dict:
                 "match_confidence": cand.get("confidence") if isinstance(cand, dict) else None,
                 "match_source": cand.get("source") if isinstance(cand, dict) else None,
             }
+            if multi_party:
+                block["party_tags"] = doc.get("party_tags") or []
             # Surface an OCR preview (first pages); full OCR via get_document_ocr.
             pages = doc.get("ocr_pages") or []
             if pages:
                 block["ocr_preview"] = first_pages(pages, n=_EVAL_PREVIEW_PAGES)
                 block["ocr_total_pages"] = len(pages)
             ev_blocks.append(block)
-        context_conditions.append({
+        cond_view = {
             "condition_id": cid,
             "label": cond.get("label"),
             "body": cond.get("body"),
@@ -72,13 +76,28 @@ def build_category_context(state: dict, eval_group: str) -> dict:
             "category": cond.get("category"),
             "stage": cond.get("stage"),
             "candidate_documents": ev_blocks,
-        })
+        }
+        if multi_party:
+            cond_view["target_parties"] = cond.get("target_parties") or []
+        context_conditions.append(cond_view)
 
-    return {
+    ctx = {
         "eval_group": eval_group,
         "condition_count": len(context_conditions),
         "conditions": context_conditions,
     }
+    if multi_party:
+        ctx["parties"] = [
+            {"name": p["name"], "tag": p["tag"], "role": p["role"]} for p in parties
+        ]
+        ctx["party_note"] = (
+            "Multi-party loan: each candidate document is tagged with the party it "
+            "belongs to (`party_tags`) and each condition with the party it applies "
+            "to (`target_parties`). Evaluate a condition only against evidence for "
+            "its party; do not credit one party's document to the other party's "
+            "condition."
+        )
+    return ctx
 
 
 def _candidate_ids_for(candidate_map: dict, condition_id: str) -> list[str]:

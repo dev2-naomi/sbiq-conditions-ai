@@ -19,6 +19,8 @@ relevance against each document's OCR text.
      (a cheap keyword/field shortlist — a **hint**, not the answer).
    - `document_inventory` — **every** submitted document with its `document_type`,
      `extracted_fields`, and an `ocr_preview` (first ~2 OCR pages).
+   - On multi-party loans it also returns `parties`, each condition's
+     `target_parties`, and each document's `party_tags`.
 2. For each condition, build its candidate list:
    - **Always include** any `prelinked_document_ids` (authoritative).
    - **Scan the full `document_inventory`** and, for each document that is plausibly
@@ -37,9 +39,16 @@ relevance against each document's OCR text.
      Treat clearly **unrelated** documents as non-candidates.
    - If a document has no OCR (`ocr_total_pages` is 0 / `ocr_available` is false),
      fall back to `document_type` + `extracted_fields`.
-4. Call `store_candidate_matches` with the final map:
+4. **Party scoping (multi-party loans only).** When the workspace includes
+   `parties`, only match a document to a condition when their parties overlap — a
+   condition's `target_parties` must intersect the document's `party_tags`.
+   Loan-level documents (appraisal, title, flood…) and generic conditions are tagged
+   for ALL parties, so they match anyone. Do **not** link one party's personal
+   document (e.g. the borrower's VOE) to the other party's condition; such
+   cross-party links are dropped when the map is stored anyway.
+5. Call `store_candidate_matches` with the final map:
    `{ "<condition_id>": ["<evidence_id>", ...], ... }`.
-5. Call `save_step_report` for `STEP_01`.
+6. Call `save_step_report` for `STEP_01`.
 
 ## Quality rules
 
