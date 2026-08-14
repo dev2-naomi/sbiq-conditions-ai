@@ -69,6 +69,13 @@ Rules:
    document you relied on. If your reasoning names a document, its id belongs in
    `evidence_used`. Only leave `evidence_used` empty when no document was provided
    for the condition.
+8. Write all user-facing text (`short_reason`, `satisfied_points`,
+   `missing_or_unclear_points`, `recommended_next_action`) in plain underwriting
+   language for a human reviewer. Do NOT mention pipeline internals or jargon such
+   as "OCR", "extracted fields", "manifest", "candidate map", or "party_tags".
+   Phrase document-availability gaps as what could not be confirmed, e.g. write
+   "Unable to verify the verification date" rather than "No OCR available to verify
+   the date".
 
 ## Underwriting judgment
 

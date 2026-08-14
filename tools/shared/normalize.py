@@ -286,6 +286,54 @@ def normalize_documents(raw_list: Any) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# User-facing text sanitization
+# ---------------------------------------------------------------------------
+#
+# "OCR" (and other pipeline-internal jargon) is an implementation detail — it must
+# not surface in the human-facing evaluation text an underwriter reads. We rewrite
+# the common phrasings the model tends to produce into plain underwriting language,
+# e.g. "No OCR available to verify the date" -> "Unable to verify the date".
+
+_OCR_TEXT_SUBS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\b(?:no|without)\s+ocr(?:\s+text)?\s+(?:is\s+|was\s+)?available\s+to\b", re.I), "unable to"),
+    (re.compile(r"\bocr(?:\s+text)?\s+(?:is\s+|was\s+)?not\s+available\s+to\b", re.I), "unable to"),
+    (re.compile(r"\b(?:no|without)\s+ocr(?:\s+text)?\s+(?:is\s+|was\s+)?available\b", re.I), "the document text is unavailable"),
+    (re.compile(r"\bocr(?:\s+text)?\s+(?:is\s+|was\s+)?not\s+available\b", re.I), "the document text is unavailable"),
+    (re.compile(r"\b(?:the\s+)?ocr(?:\s+text)?\s+does\s+not\s+(show|contain|include|indicate)\b", re.I), r"the document does not \1"),
+    (re.compile(r"\b(?:from|in|per|based on|according to)\s+the\s+ocr(?:\s+text)?\b", re.I), "in the document"),
+    (re.compile(r"\bocr\s+text\b", re.I), "document text"),
+    (re.compile(r"\bocr\b", re.I), "document"),
+]
+
+
+def sanitize_user_facing(value: Any) -> Any:
+    """Strip pipeline-internal 'OCR' jargon from a user-facing string (or list of
+    strings), preserving leading capitalization."""
+    if isinstance(value, list):
+        return [sanitize_user_facing(v) for v in value]
+    if not isinstance(value, str) or not value:
+        return value
+    out = value
+    for pat, repl in _OCR_TEXT_SUBS:
+        out = pat.sub(repl, out)
+    if out != value:
+        # Re-capitalize the first alphabetic character if the original was capitalized.
+        for i, ch in enumerate(value):
+            if ch.isalpha():
+                if ch.isupper():
+                    out = _capitalize_first_alpha(out)
+                break
+    return out
+
+
+def _capitalize_first_alpha(text: str) -> str:
+    for i, ch in enumerate(text):
+        if ch.isalpha():
+            return text[:i] + ch.upper() + text[i + 1:]
+    return text
+
+
+# ---------------------------------------------------------------------------
 # Evaluation result normalization
 # ---------------------------------------------------------------------------
 
@@ -298,15 +346,15 @@ def normalize_evaluation(raw: dict, default_category: str = "other") -> dict:
         "category": normalize_category(_first(raw, "category", default=default_category)),
         "result": normalize_result(_first(raw, "result", "verdict", "status", default="Needs Review")),
         "confidence": _coerce_confidence(_first(raw, "confidence", "score", default=0)),
-        "short_reason": _first(raw, "short_reason", "reason", "explanation", default=""),
-        "satisfied_points": _as_list(_first(raw, "satisfied_points", "satisfied", default=[])),
-        "missing_or_unclear_points": _as_list(
+        "short_reason": sanitize_user_facing(_first(raw, "short_reason", "reason", "explanation", default="")),
+        "satisfied_points": sanitize_user_facing(_as_list(_first(raw, "satisfied_points", "satisfied", default=[]))),
+        "missing_or_unclear_points": sanitize_user_facing(_as_list(
             _first(raw, "missing_or_unclear_points", "missing", "unclear", default=[])
-        ),
+        )),
         "evidence_used": _ids_to_str(_first(raw, "evidence_used", "evidence_ids", "evidenceIds", default=[])),
-        "recommended_next_action": _first(
+        "recommended_next_action": sanitize_user_facing(_first(
             raw, "recommended_next_action", "next_action", "recommendation", default=""
-        ),
+        )),
         # Guideline section(s) consulted to justify the verdict (for auditability).
         "guideline_refs": _as_list(_first(raw, "guideline_refs", "guideline_sections", "guidelines", default=[])),
     }
