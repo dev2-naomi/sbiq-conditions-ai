@@ -95,7 +95,13 @@ property), `Property` (appraisal / title / insurance / taxes / flood), and
 
 ### Cloud / LangGraph invocation
 
-Deployed on **AWS Lambda** (preferred) at:
+Deployed on **AWS Lambda** (prod) at:
+
+```
+https://4ptmhkbnvvyfh2gqb6yq47ib7a0vihoo.lambda-url.us-east-2.on.aws/
+```
+
+Dev:
 
 ```
 https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/

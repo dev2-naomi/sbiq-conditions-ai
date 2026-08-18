@@ -11,7 +11,7 @@ P99 latency is well under Lambda's 900s limit, so Fargate is not used.
 | Stage | Function URL |
 |-------|----------------|
 | **dev** | `https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/` |
-| **prod** | See `output-prod.json` after `./infra/deploy.sh prod` (or table below once deployed) |
+| **prod** | `https://4ptmhkbnvvyfh2gqb6yq47ib7a0vihoo.lambda-url.us-east-2.on.aws/` |
 
 Auth: `x-api-key: $API_KEY` (value in local `.env`, never commit it).  
 Assistant id: `conditions-evaluator`.

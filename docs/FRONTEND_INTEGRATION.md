@@ -276,16 +276,15 @@ The engine is deployed on **AWS Lambda** (LangGraph Platform-compatible API) and
 is also still available on LangGraph Cloud. Use either base URL with the same
 request/response shapes — only the host and auth key change:
 
-| What | AWS (recommended) | LangGraph Cloud (legacy) |
-|------|-------------------|--------------------------|
-| **Base URL** | `https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/` | `https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app` |
-| **Auth** | `API_KEY` from the deploy `.env`, as `X-Api-Key` / SDK `apiKey` | LangSmith API key as `X-Api-Key` / SDK `apiKey` |
-| **Assistant / graph id** | `conditions-evaluator` | same |
-| **Input** | the `EvaluatorInput` object (§2.1) | same |
-| **Result** | read `final_output` from the thread/run state (§2.2) | same |
+| What | AWS prod (recommended) | AWS dev | LangGraph Cloud (legacy) |
+|------|------------------------|---------|--------------------------|
+| **Base URL** | `https://4ptmhkbnvvyfh2gqb6yq47ib7a0vihoo.lambda-url.us-east-2.on.aws/` | `https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/` | `https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app` |
+| **Auth** | `API_KEY` from the deploy `.env`, as `X-Api-Key` / SDK `apiKey` | same | LangSmith API key as `X-Api-Key` / SDK `apiKey` |
+| **Assistant / graph id** | `conditions-evaluator` | same | same |
+| **Input** | the `EvaluatorInput` object (§2.1) | same | same |
+| **Result** | read `final_output` from the thread/run state (§2.2) | same | same |
 
 See [`docs/AWS_DEPLOYMENT.md`](AWS_DEPLOYMENT.md) for deploy / smoke / CI details.
-Prod URL is written to `output-prod.json` after `./infra/deploy.sh prod`.
 
 
 ---
