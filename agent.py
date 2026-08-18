@@ -2,7 +2,7 @@
 agent.py — Main orchestrator agent for the Conditions Evaluator.
 
 Entry point referenced by langgraph.json:
-    "conditions-evaluator": "./agent.py:agent"
+    "conditions-evaluator": "./agent.py:make_graph"
 
 Architecture (mirrors the predicted-conditions engine):
 - Single ReAct agent loop using LangGraph StateGraph (orchestrator <-> tools).
@@ -356,4 +356,20 @@ _builder.add_conditional_edges(
 )
 _builder.add_edge("tools", "orchestrator")
 
-agent = _builder.compile().with_config({"recursion_limit": 150})
+
+def build_graph(*, checkpointer=None, name: str = "conditions-evaluator"):
+    """Compile the evaluator graph.
+
+    AWS injects a DynamoDB checkpointer; LangGraph Cloud / local leave it None.
+    """
+    compiled = _builder.compile(checkpointer=checkpointer, name=name)
+    return compiled.with_config({"recursion_limit": 150})
+
+
+def make_graph(config=None):  # noqa: ARG001 — LangGraph Platform factory signature
+    """Public factory for langgraph.json / LangGraph Cloud (RunnableConfig only)."""
+    return build_graph()
+
+
+# Backward-compatible module export for langgraph.json and local imports.
+agent = build_graph()

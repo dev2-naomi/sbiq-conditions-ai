@@ -10,3 +10,7 @@ env/
 .DS_Store
 test_results/
 *_final_state*.json
+infra/.venv/
+infra/cdk.out/
+output-*.json
+output.json

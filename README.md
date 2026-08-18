@@ -95,13 +95,25 @@ property), `Property` (appraisal / title / insurance / taxes / flood), and
 
 ### Cloud / LangGraph invocation
 
-Deployed on LangGraph Platform at:
+Deployed on **AWS Lambda** (preferred) at:
+
+```
+https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/
+```
+
+(Requests require the deploy `API_KEY` via the `X-Api-Key` header.)
+
+Still available on LangGraph Platform at:
 
 ```
 https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app
 ```
 
 (Requests require a LangSmith API key via the `X-Api-Key` header.)
+
+> **AWS Lambda hosting:** see [`docs/AWS_DEPLOYMENT.md`](docs/AWS_DEPLOYMENT.md).
+> Deploy with `./infra/deploy.sh dev`, then point clients at the Function URL
+> with `x-api-key` from `.env` (`API_KEY`). Assistant id stays `conditions-evaluator`.
 
 ```json
 POST /threads/{thread_id}/runs

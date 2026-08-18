@@ -272,17 +272,21 @@ export interface FinalOutput {
 
 ## 3. How to call it
 
-The engine is deployed on **LangGraph Platform** and exposes the standard LangGraph
-"Assistants" HTTP API — usable via the `@langchain/langgraph-sdk` client or plain
-REST. Wire up the calls however the frontend/backend prefers; you only need:
+The engine is deployed on **AWS Lambda** (LangGraph Platform-compatible API) and
+is also still available on LangGraph Cloud. Use either base URL with the same
+request/response shapes — only the host and auth key change:
 
-| What | Value |
-|------|-------|
-| **Base URL** | `https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app` |
-| **Auth** | a **LangSmith API key**, sent as the `X-Api-Key` header (REST) or `apiKey` in the SDK `Client` |
-| **Assistant / graph id** | `conditions-evaluator` |
-| **Input** | the `EvaluatorInput` object (§2.1) |
-| **Result** | read `final_output` from the thread/run state (§2.2) |
+| What | AWS (recommended) | LangGraph Cloud (legacy) |
+|------|-------------------|--------------------------|
+| **Base URL** | `https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/` | `https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app` |
+| **Auth** | `API_KEY` from the deploy `.env`, as `X-Api-Key` / SDK `apiKey` | LangSmith API key as `X-Api-Key` / SDK `apiKey` |
+| **Assistant / graph id** | `conditions-evaluator` | same |
+| **Input** | the `EvaluatorInput` object (§2.1) | same |
+| **Result** | read `final_output` from the thread/run state (§2.2) | same |
+
+See [`docs/AWS_DEPLOYMENT.md`](AWS_DEPLOYMENT.md) for deploy / smoke / CI details.
+Prod URL is written to `output-prod.json` after `./infra/deploy.sh prod`.
+
 
 ---
 
