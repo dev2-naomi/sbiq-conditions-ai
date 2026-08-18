@@ -62,3 +62,9 @@ LANGGRAPH_CLOUD_URL="$(jq -r '.["SbiqConditionsStack-dev"].ApiUrl' output-dev.js
 
 Point the LangGraph SDK / REST client at the Function URL and send `x-api-key: $API_KEY`.
 Assistant id remains `conditions-evaluator`. Details in [`FRONTEND_INTEGRATION.md`](FRONTEND_INTEGRATION.md).
+
+## Troubleshooting
+
+See [`AWS_TROUBLESHOOTING.md`](AWS_TROUBLESHOOTING.md) for issues hit during this
+migration (DynamoDB floats, empty LangSmith secrets, broken `infra/.venv`, missing
+remote `dev` branch).
