@@ -39,24 +39,36 @@ jobs:
 
       - name: Set stage and auto-generate defaults
         id: stage
+        env:
+          API_KEY_DEV: ${{ secrets.API_KEY_DEV }}
+          API_KEY_PROD: ${{ secrets.API_KEY_PROD }}
+          API_KEY_LEGACY: ${{ secrets.API_KEY }}
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "stage=${{ inputs.stage }}" >> $GITHUB_OUTPUT
+            STAGE="${{ inputs.stage }}"
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "stage=prod" >> $GITHUB_OUTPUT
+            STAGE="prod"
           else
-            echo "stage=dev" >> $GITHUB_OUTPUT
+            STAGE="dev"
           fi
+          echo "stage=$STAGE" >> $GITHUB_OUTPUT
 
           REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
           echo "repo_name=$REPO_NAME" >> $GITHUB_OUTPUT
 
-          if [[ -z "${{ secrets.API_KEY }}" ]]; then
-            echo "api_key=$(openssl rand -hex 32)" >> $GITHUB_OUTPUT
-            echo "Generated new API_KEY"
+          if [[ "$STAGE" == "prod" ]]; then
+            KEY="${API_KEY_PROD}"
           else
-            echo "api_key=${{ secrets.API_KEY }}" >> $GITHUB_OUTPUT
+            KEY="${API_KEY_DEV}"
           fi
+          if [[ -z "$KEY" ]]; then
+            KEY="${API_KEY_LEGACY}"
+          fi
+          if [[ -z "$KEY" ]]; then
+            echo "Missing API_KEY_DEV / API_KEY_PROD (or legacy API_KEY) GitHub secret"
+            exit 1
+          fi
+          echo "api_key=$KEY" >> $GITHUB_OUTPUT
 
           if [[ -z "${{ vars.LANGSMITH_DEV_PROJECT }}" ]]; then
             echo "langsmith_dev_project=${REPO_NAME}-dev" >> $GITHUB_OUTPUT

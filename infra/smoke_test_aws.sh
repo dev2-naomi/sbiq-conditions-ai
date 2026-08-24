@@ -21,14 +21,23 @@ if [[ -z "$API_URL" ]]; then
     exit 1
 fi
 
-# Load API_KEY from .env if present
+# Load stage key from .env: API_KEY_DEV / API_KEY_PROD, else API_KEY
 if [[ -f "$REPO_ROOT/.env" ]]; then
-    while IFS='=' read -r key value; do
-        [[ -z "$key" || "$key" =~ ^# ]] && continue
-        if [[ "$key" == "API_KEY" ]]; then
-            API_KEY="$value"
-        fi
-    done < "$REPO_ROOT/.env"
+    eval "$(
+        python3 - "$REPO_ROOT/.env" "$STAGE" <<'PY'
+import pathlib, shlex, sys
+env, stage = pathlib.Path(sys.argv[1]), sys.argv[2].upper()
+vals = {}
+for line in env.read_text().splitlines():
+    line = line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    k, v = line.split("=", 1)
+    vals[k.strip()] = v
+key = vals.get(f"API_KEY_{stage}") or vals.get("API_KEY") or ""
+print(f"export API_KEY={shlex.quote(key)}")
+PY
+    )"
 fi
 
 AUTH_HEADER=()

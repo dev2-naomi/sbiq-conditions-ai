@@ -39,7 +39,8 @@ fi
 echo "=== Syncing secrets to GitHub ==="
 
 SECRETS=(
-    "API_KEY"
+    "API_KEY_DEV"
+    "API_KEY_PROD"
     "ANTHROPIC_API_KEY"
     "LANGSMITH_API_KEY"
     "ANTHROPIC_MODEL"

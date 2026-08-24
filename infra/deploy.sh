@@ -46,10 +46,19 @@ fi
 ENV_FILE="$REPO_ROOT/.env"
 GENERATED_VARS=()
 
-if [[ -z "${API_KEY:-}" ]]; then
+# Stage-specific client keys (Lambda still reads API_KEY from that stage's secret).
+# Do not reuse a shared API_KEY for dev — that would keep both stacks on one key.
+STAGE_API_KEY_VAR="API_KEY_$(echo "$STAGE" | tr '[:lower:]' '[:upper:]')"
+STAGE_API_KEY_VAL="${!STAGE_API_KEY_VAR:-}"
+if [[ -n "$STAGE_API_KEY_VAL" ]]; then
+    export API_KEY="$STAGE_API_KEY_VAL"
+elif [[ "$STAGE" == "prod" && -n "${API_KEY:-}" ]]; then
+    GENERATED_VARS+=("API_KEY_PROD=$API_KEY")
+    echo "Persisting existing API_KEY as API_KEY_PROD"
+else
     export API_KEY=$(openssl rand -hex 32)
-    GENERATED_VARS+=("API_KEY=$API_KEY")
-    echo "Auto-generated API_KEY"
+    GENERATED_VARS+=("${STAGE_API_KEY_VAR}=$API_KEY")
+    echo "Auto-generated ${STAGE_API_KEY_VAR}"
 fi
 if [[ -z "${LANGSMITH_DEV_PROJECT:-}" ]]; then
     export LANGSMITH_DEV_PROJECT="${REPO_NAME}-dev"

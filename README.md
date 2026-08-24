@@ -107,7 +107,7 @@ Dev:
 https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/
 ```
 
-(Requests require the deploy `API_KEY` via the `X-Api-Key` header.)
+(Requests require the stage `API_KEY` via the `X-Api-Key` header: `API_KEY_DEV` vs `API_KEY_PROD`.)
 
 Still available on LangGraph Platform at:
 
@@ -119,7 +119,7 @@ https://sbiq-conditions-ai-c8388c5972925cd8a55f0f86b1fab478.us.langgraph.app
 
 > **AWS Lambda hosting:** see [`docs/AWS_DEPLOYMENT.md`](docs/AWS_DEPLOYMENT.md).
 > Deploy with `./infra/deploy.sh dev`, then point clients at the Function URL
-> with `x-api-key` from `.env` (`API_KEY`). Assistant id stays `conditions-evaluator`.
+> with `x-api-key` from `.env` (`API_KEY_DEV` or `API_KEY_PROD`). Assistant id stays `conditions-evaluator`.
 
 ```json
 POST /threads/{thread_id}/runs
@@ -142,9 +142,8 @@ callers only need to send data. The final result is in thread state under
 `final_output`.
 
 > **Building a UI / calling this from a client?** See
-> [`docs/FRONTEND_INTEGRATION.md`](docs/FRONTEND_INTEGRATION.md) for the full
-> request/response contract, TypeScript types, invocation options (LangGraph SDK /
-> REST / backend wrapper), and rendering guidance. Ready-to-use samples live in
+> [`docs/CONDITIONS_AI_AWS_DOC.md`](docs/CONDITIONS_AI_AWS_DOC.md) for invoke (AWS),
+> request/response contract, and TypeScript types. Samples:
 > [`data/samples/`](data/samples/).
 
 ## Output
@@ -329,7 +328,7 @@ sbiq-conditions-ai/
 │       └── guidelines.py     # NQMF guidelines parser (section lookup)
 │
 ├── docs/
-│   └── FRONTEND_INTEGRATION.md # Request/response contract, TS types, invocation + UI guidance
+│   └── CONDITIONS_AI_AWS_DOC.md # AWS invoke + input/output contract, TS types
 │
 ├── data/
 │   ├── guidelines.md         # NQMF underwriting guidelines (evaluation reference)

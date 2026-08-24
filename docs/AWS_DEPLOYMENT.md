@@ -13,7 +13,7 @@ P99 latency is well under Lambda's 900s limit, so Fargate is not used.
 | **dev** | `https://c5n4xqskyfk2ollrqdvbdscekm0cuapj.lambda-url.us-east-2.on.aws/` |
 | **prod** | `https://4ptmhkbnvvyfh2gqb6yq47ib7a0vihoo.lambda-url.us-east-2.on.aws/` |
 
-Auth: `x-api-key: $API_KEY` (value in local `.env`, never commit it).  
+Auth: `x-api-key` — **`API_KEY_DEV`** for the dev URL, **`API_KEY_PROD`** for prod (in local `.env`, never commit).
 Assistant id: `conditions-evaluator`.
 
 ## Prerequisites
@@ -31,14 +31,14 @@ cp env.example .env   # if needed; keep ANTHROPIC_API_KEY + LANGSMITH_API_KEY
 ./infra/smoke_test_aws.sh dev
 ```
 
-`deploy.sh` auto-generates and **persists to `.env`**: `API_KEY`, `LANGSMITH_*_PROJECT`, `CORS_ALLOW_ORIGINS`.
+`deploy.sh` auto-generates and **persists to `.env`**: `API_KEY_DEV` or `API_KEY_PROD` (for the stage you deploy), `LANGSMITH_*_PROJECT`, `CORS_ALLOW_ORIGINS`.
 
 Full run against the Function URL:
 
 ```bash
 source .env
 LANGGRAPH_CLOUD_URL="$(jq -r '.["SbiqConditionsStack-dev"].ApiUrl' output-dev.json)" \
-  python run_cloud.py --wait --api-key "$API_KEY" --state
+  python run_cloud.py --wait --api-key "$API_KEY_DEV" --state
 ```
 
 ## Prod
@@ -60,8 +60,8 @@ LANGGRAPH_CLOUD_URL="$(jq -r '.["SbiqConditionsStack-dev"].ApiUrl' output-dev.js
 
 ## Client cutover
 
-Point the LangGraph SDK / REST client at the Function URL and send `x-api-key: $API_KEY`.
-Assistant id remains `conditions-evaluator`. Details in [`FRONTEND_INTEGRATION.md`](FRONTEND_INTEGRATION.md).
+Point the LangGraph SDK / REST client at the Function URL and send `x-api-key` (`API_KEY_DEV` or `API_KEY_PROD`).
+Assistant id remains `conditions-evaluator`. Dashboard contract: [`CONDITIONS_AI_AWS_DOC.md`](CONDITIONS_AI_AWS_DOC.md).
 
 ## Troubleshooting
 
