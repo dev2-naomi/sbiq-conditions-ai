@@ -83,9 +83,9 @@ Passed as raw strings (the agent parses them itself):
 |-------|--------|-------------|
 | `conditions_json` | JSON | Conditions to evaluate, in the Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`). A leading log/prefix line is tolerated. |
 | `documents_json` | JSON | Rack & stack (R&S) manifest — submitted documents: each has `id`, a `category` (type) and `metadata` of **structured extracted fields**, plus per-document **OCR** referenced under a top-level `artifacts` array (`type: "ocr"`), assumed dereferenced/inlined |
-| `eligibility_json` | JSON (optional) | Eligibility engine output (`application_data`, `eligible_programs`) |
-| `loan_file_xml` | MISMO XML (optional) | Loan scenario for additional context |
-| `borrower` | JSON/dict or string (optional) | Primary borrower identity — `{"first_name","last_name"}` or a name string. Falls back to eligibility / XML when omitted. |
+| `eligibility_json` | JSON (optional) | Eligibility engine output (`eligible_programs`, and `application_data` only as a fallback) |
+| `loan_file_xml` | JSON object (or JSON string) | Loan scenario. Required and always populated: `FicoScore`, `LTV`, `DTI`, `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`, `IncomeDocType`, `Channel`, `BorrowerType`, `Citizenship`, `State`, `County`, `LoanType`. Optional: `ReservesMonths`, `FirstTimeHomeBuyer`. A legacy MISMO XML string is still accepted. |
+| `borrower` | JSON/dict or string (optional) | Primary borrower identity — `{"first_name","last_name"}` or a name string. Falls back to eligibility when omitted. |
 | `coborrower` | JSON/dict or string (optional) | Co-borrower identity. Empty/absent ⇒ single-party loan. |
 
 Conditions are routed to one of five evaluation groups by `Category`:
@@ -129,8 +129,26 @@ POST /threads/{thread_id}/runs
   "input": {
     "conditions_json": "<raw conditions JSON string>",
     "documents_json": "<raw R&S documents JSON string>",
-    "eligibility_json": "<optional eligibility JSON string>",
-    "loan_file_xml": "<optional MISMO XML string>",
+    "eligibility_json": "<optional eligibility JSON>",
+    "loan_file_xml": {
+      "FicoScore": 782,
+      "LTV": 50,
+      "DTI": 34,
+      "LoanAmount": 1700000,
+      "PropertyValue": 3400000,
+      "PropertyType": "SFR",
+      "Occupancy": "Second Home",
+      "LoanPurpose": "Purchase",
+      "IncomeDocType": "Asset Utilization",
+      "Channel": "wholesale",
+      "BorrowerType": "Retired / Fixed Income",
+      "Citizenship": "US Citizen",
+      "State": "NJ",
+      "County": "Ocean",
+      "LoanType": "Conventional",
+      "ReservesMonths": 0,
+      "FirstTimeHomeBuyer": "No"
+    },
     "borrower": {"first_name": "Israel", "last_name": "Ortiz"},
     "coborrower": {"first_name": "Natalya", "last_name": "Ortiz"}
   }

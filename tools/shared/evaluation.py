@@ -86,6 +86,9 @@ def build_category_context(state: dict, eval_group: str) -> dict:
         "condition_count": len(context_conditions),
         "conditions": context_conditions,
     }
+    loan = (state.get("eval_scenario") or {}).get("loan")
+    if isinstance(loan, dict) and loan:
+        ctx["loan"] = loan
     if multi_party:
         ctx["parties"] = [
             {"name": p["name"], "tag": p["tag"], "role": p["role"]} for p in parties

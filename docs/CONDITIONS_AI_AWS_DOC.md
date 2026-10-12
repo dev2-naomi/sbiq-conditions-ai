@@ -79,10 +79,38 @@ JSON objects/arrays **or** JSON strings — both work.
 |-------|----------|-------------|
 | `conditions_json` | yes | Encompass conditions array |
 | `documents_json` | yes | R&S manifest: `{ "documents": [...] }` or a bare array |
-| `eligibility_json` | no | Eligibility output (loan numbers, programs) |
-| `loan_file_xml` | no | MISMO XML; `""` if unused |
+| `eligibility_json` | no | Eligibility output (`eligible_programs`). Loan numbers come from `loan_file_xml`; eligibility only fills a field when the loan file omits it |
+| `loan_file_xml` | yes | Loan scenario object (or a JSON string of it). See fields below |
 | `borrower` / `coborrower` | no | `{ "first_name", "last_name" }` or a name string |
 | `env` | no | Free-form, e.g. `"Test"` / `"Prod"` |
+
+**Loan scenario** (`loan_file_xml`)
+
+All of these are required and always populated, except `ReservesMonths` and `FirstTimeHomeBuyer`, which may be omitted (`0` is a real value when `ReservesMonths` is sent):
+
+```json
+{
+  "FicoScore": 782,
+  "LTV": 50,
+  "DTI": 34,
+  "LoanAmount": 1700000,
+  "PropertyValue": 3400000,
+  "PropertyType": "SFR",
+  "Occupancy": "Second Home",
+  "LoanPurpose": "Purchase",
+  "IncomeDocType": "Asset Utilization",
+  "Channel": "wholesale",
+  "BorrowerType": "Retired / Fixed Income",
+  "Citizenship": "US Citizen",
+  "State": "NJ",
+  "County": "Ocean",
+  "LoanType": "Conventional",
+  "ReservesMonths": 0,
+  "FirstTimeHomeBuyer": "No"
+}
+```
+
+A legacy MISMO XML string is still accepted, but it only yields borrower name and property city/state.
 
 **Condition**
 
@@ -135,7 +163,27 @@ Full example: [`data/samples/sample_run_request.json`](../data/samples/sample_ru
 ```json
 {
   "scenario_summary": {
-    "loan": { "loan_id": 1042, "borrower_name": "...", "loan_amount": 420000, "ltv": 80.0, "fico": 728 },
+    "loan": {
+      "loan_id": 1042,
+      "borrower_name": "...",
+      "fico": 782,
+      "ltv": 50,
+      "dti": 34,
+      "loan_amount": 1700000,
+      "property_value": 3400000,
+      "property_type": "SFR",
+      "occupancy": "Second Home",
+      "loan_purpose": "Purchase",
+      "income_doc_type": "Asset Utilization",
+      "channel": "wholesale",
+      "borrower_type": "Retired / Fixed Income",
+      "citizenship": "US Citizen",
+      "property_state": "NJ",
+      "county": "Ocean",
+      "loan_type": "Conventional",
+      "reserves_months": 0,
+      "first_time_home_buyer": "No"
+    },
     "eligible_programs": ["Flex Select"],
     "counts": { "conditions": 5, "submitted_documents": 5 },
     "conditions_by_group": { "assets": 2, "property": 1, "credit": 1, "income": 1 },
@@ -226,11 +274,31 @@ export interface ConditionInput {
   };
 }
 
+export interface LoanFile {
+  FicoScore: number;
+  LTV: number;
+  DTI: number;
+  LoanAmount: number;
+  PropertyValue: number;
+  PropertyType: string;
+  Occupancy: string;
+  LoanPurpose: string;
+  IncomeDocType: string;
+  Channel: string;
+  BorrowerType: string;
+  Citizenship: string;
+  State: string;
+  County: string;
+  LoanType: string;
+  ReservesMonths?: number;
+  FirstTimeHomeBuyer?: string;
+}
+
 export interface EvaluatorInput {
   conditions_json: ConditionInput[] | string;
   documents_json: { documents: SubmittedDocument[] } | SubmittedDocument[] | string;
+  loan_file_xml: LoanFile | string;
   eligibility_json?: Record<string, unknown> | string;
-  loan_file_xml?: string;
   borrower?: { first_name?: string; last_name?: string } | string;
   coborrower?: { first_name?: string; last_name?: string } | string;
   env?: string;
@@ -260,9 +328,24 @@ export interface FinalOutput {
     loan: {
       loan_id: number | string | null;
       borrower_name?: string | null;
-      loan_amount?: number | null;
-      ltv?: number | null;
       fico?: number | null;
+      ltv?: number | null;
+      dti?: number | null;
+      loan_amount?: number | null;
+      property_value?: number | null;
+      property_type?: string | null;
+      occupancy?: string | null;
+      loan_purpose?: string | null;
+      income_doc_type?: string | null;
+      channel?: string | null;
+      borrower_type?: string | null;
+      citizenship?: string | null;
+      property_state?: string | null;
+      county?: string | null;
+      loan_type?: string | null;
+      property_city?: string | null;
+      reserves_months?: number | null;
+      first_time_home_buyer?: string | null;
     };
     eligible_programs: string[];
     counts: { conditions: number; submitted_documents: number };

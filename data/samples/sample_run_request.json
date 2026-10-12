@@ -2,7 +2,25 @@
   "assistant_id": "conditions-evaluator",
   "input": {
     "env": "Test",
-    "loan_file_xml": "",
+    "loan_file_xml": {
+      "FicoScore": 728,
+      "LTV": 80,
+      "DTI": 34,
+      "LoanAmount": 420000,
+      "PropertyValue": 525000,
+      "PropertyType": "SFR",
+      "Occupancy": "Primary Residence",
+      "LoanPurpose": "Purchase",
+      "IncomeDocType": "Bank Statement",
+      "Channel": "wholesale",
+      "BorrowerType": "Wage Earner",
+      "Citizenship": "US Citizen",
+      "State": "FL",
+      "County": "Manatee",
+      "LoanType": "Conventional",
+      "ReservesMonths": 6,
+      "FirstTimeHomeBuyer": "No"
+    },
     "conditions_json": [
       {
         "condition": {
@@ -19,7 +37,9 @@
             "ForRole": "Underwriter"
           },
           "loan_id": 1042,
-          "related_category_ids": [827],
+          "related_category_ids": [
+            827
+          ],
           "result_document_ids": []
         }
       },
@@ -38,8 +58,17 @@
             "ForRole": "Underwriter"
           },
           "loan_id": 1042,
-          "related_category_ids": [210, 396, 502, 827, 1557],
-          "result_document_ids": [25988, 25989]
+          "related_category_ids": [
+            210,
+            396,
+            502,
+            827,
+            1557
+          ],
+          "result_document_ids": [
+            25988,
+            25989
+          ]
         }
       },
       {
@@ -57,8 +86,14 @@
             "ForRole": "Sr Loan Coordinator"
           },
           "loan_id": 1042,
-          "related_category_ids": [323, 843, 844],
-          "result_document_ids": [26015]
+          "related_category_ids": [
+            323,
+            843,
+            844
+          ],
+          "result_document_ids": [
+            26015
+          ]
         }
       },
       {
@@ -76,8 +111,12 @@
             "ForRole": "Sr Loan Coordinator"
           },
           "loan_id": 1042,
-          "related_category_ids": [1479],
-          "result_document_ids": [26030]
+          "related_category_ids": [
+            1479
+          ],
+          "result_document_ids": [
+            26030
+          ]
         }
       },
       {
@@ -95,8 +134,15 @@
             "ForRole": "Underwriter"
           },
           "loan_id": 1042,
-          "related_category_ids": [1, 358, 504, 1553],
-          "result_document_ids": [26042]
+          "related_category_ids": [
+            1,
+            358,
+            504,
+            1553
+          ],
+          "result_document_ids": [
+            26042
+          ]
         }
       }
     ],
@@ -104,7 +150,10 @@
       "documents": [
         {
           "id": 25988,
-          "category": { "category_id": 1080, "category_name": "Earnest Money Deposit Check" },
+          "category": {
+            "category_id": 1080,
+            "category_name": "Earnest Money Deposit Check"
+          },
           "metadata": {
             "payee": "ABC Title Company",
             "amount": "$5,000.00",
@@ -118,7 +167,10 @@
         },
         {
           "id": 25989,
-          "category": { "category_id": 1081, "category_name": "Title Receipt" },
+          "category": {
+            "category_id": 1081,
+            "category_name": "Title Receipt"
+          },
           "metadata": {
             "title_company": "ABC Title Company",
             "received_from": "John Q Borrower",
@@ -131,7 +183,10 @@
         },
         {
           "id": 26015,
-          "category": { "category_id": 844, "category_name": "Driver License" },
+          "category": {
+            "category_id": 844,
+            "category_name": "Driver License"
+          },
           "metadata": {
             "name": "John Q Borrower",
             "dob": "03/12/1980",
@@ -146,7 +201,10 @@
         },
         {
           "id": 26030,
-          "category": { "category_id": 1479, "category_name": "Homeowners Insurance Declaration" },
+          "category": {
+            "category_id": 1479,
+            "category_name": "Homeowners Insurance Declaration"
+          },
           "metadata": {
             "insured": "John Q Borrower",
             "property_address": "742 Evergreen Terrace",
@@ -162,12 +220,21 @@
         },
         {
           "id": 26042,
-          "category": { "category_id": 504, "category_name": "Operating Agreement" },
+          "category": {
+            "category_id": 504,
+            "category_name": "Operating Agreement"
+          },
           "metadata": {
             "entity_name": "Sunset Holdings LLC",
             "members": [
-              { "name": "John Q Borrower", "ownership_percent": 50 },
-              { "name": "Jane A Partner", "ownership_percent": 50 }
+              {
+                "name": "John Q Borrower",
+                "ownership_percent": 50
+              },
+              {
+                "name": "Jane A Partner",
+                "ownership_percent": 50
+              }
             ],
             "managing_member": "John Q Borrower",
             "effective_date": "01/01/2019",
@@ -191,7 +258,9 @@
         "IncomeDocType": "BankStatement",
         "ReservesMonths": 6
       },
-      "eligible_programs": ["Flex Select"],
+      "eligible_programs": [
+        "Flex Select"
+      ],
       "program_results": [
         {
           "program": "Flex Select",

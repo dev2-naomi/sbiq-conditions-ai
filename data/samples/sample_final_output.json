@@ -6,10 +6,25 @@
       "property_state": "FL",
       "property_city": "Bradenton",
       "loan_amount": 420000,
-      "ltv": 80.0,
-      "fico": 728
+      "ltv": 80,
+      "fico": 728,
+      "dti": 34,
+      "property_value": 525000,
+      "property_type": "SFR",
+      "occupancy": "Primary Residence",
+      "loan_purpose": "Purchase",
+      "income_doc_type": "Bank Statement",
+      "channel": "wholesale",
+      "borrower_type": "Wage Earner",
+      "citizenship": "US Citizen",
+      "county": "Manatee",
+      "loan_type": "Conventional",
+      "reserves_months": 6,
+      "first_time_home_buyer": "No"
     },
-    "eligible_programs": ["Flex Select"],
+    "eligible_programs": [
+      "Flex Select"
+    ],
     "counts": {
       "conditions": 5,
       "submitted_documents": 5
@@ -63,9 +78,13 @@
       "missing_or_unclear_points": [
         "Loss payee / mortgagee clause (Lender's name, ISAOA, loan number) not shown on the page provided"
       ],
-      "evidence_used": ["26030"],
+      "evidence_used": [
+        "26030"
+      ],
       "recommended_next_action": "Request an updated declaration page reflecting the lender's mortgagee clause with the loan number.",
-      "guideline_refs": ["PROPERTY INSURANCE"],
+      "guideline_refs": [
+        "PROPERTY INSURANCE"
+      ],
       "label": "CORR:  Property: Insurance - Hazard",
       "body": "**10/24 (BR) EFFECTIVE DATE MUST BE WITHIN 15 DAYS OF NOTE DATE AS THIS IS A PURCHASE** Provide evidence of hazard insurance with sufficient coverage to support lesser of the loan amount or replacement cost. Wind/Hail must be included, or a separate policy required. Loss payee to reflect: Lender's Name, ISAOA with loan number and endorsement(s).",
       "priority": "normal",
@@ -84,8 +103,11 @@
         "Title company receipt acknowledging the same $5,000 deposit"
       ],
       "missing_or_unclear_points": [],
-      "evidence_used": ["25988", "25989"],
-      "recommended_next_action": "None — condition satisfied.",
+      "evidence_used": [
+        "25988",
+        "25989"
+      ],
+      "recommended_next_action": "None \u2014 condition satisfied.",
       "guideline_refs": [],
       "label": "CORR:  Assets - Earnest Money Deposit",
       "body": "*** (LA) 10/27 - Provide a copy of the check or title receipt. ",
@@ -105,8 +127,10 @@
         "Name matches borrower of record"
       ],
       "missing_or_unclear_points": [],
-      "evidence_used": ["26015"],
-      "recommended_next_action": "None — condition satisfied.",
+      "evidence_used": [
+        "26015"
+      ],
+      "recommended_next_action": "None \u2014 condition satisfied.",
       "guideline_refs": [],
       "label": "CORR:  Credit: Primary Identification",
       "body": "Provide a legible copy of Driver's License or other primary form of ID. Cut off...need better picture / copy of license",
@@ -126,9 +150,13 @@
         "50% >= the required 25% ownership threshold"
       ],
       "missing_or_unclear_points": [],
-      "evidence_used": ["26042"],
-      "recommended_next_action": "None — condition satisfied.",
-      "guideline_refs": ["FULL DOCUMENTATION"],
+      "evidence_used": [
+        "26042"
+      ],
+      "recommended_next_action": "None \u2014 condition satisfied.",
+      "guideline_refs": [
+        "FULL DOCUMENTATION"
+      ],
       "label": "Income:  NonQM -Verify minimum 25% ownership interest in the Business",
       "body": "Income: Verify that the borrower is at least 25% owner of the business by providing one of the following: CPA letter, operating agreement, or equivalent reflecting the borrower's ownership percentage.",
       "priority": "normal",

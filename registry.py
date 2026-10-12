@@ -12,7 +12,7 @@ from typing import Any
 STEP_CONFIG: dict[str, dict[str, Any]] = {
         "STEP_00": {
                 "name": "Intake & Normalization",
-                "description": "Parse the conditions, the submitted documents (rack & stack output), the loan scenario (MISMO XML), and the eligibility output. Normalize categories and build an evaluation scenario summary.",
+                "description": "Parse the conditions, the submitted documents (rack & stack output), and the loan scenario object. Eligibility output is optional. Normalize categories and build an evaluation scenario summary.",
                 "plan_file": "step_00_intake.md",
                 "tools": [
                         "parse_conditions",

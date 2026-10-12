@@ -16,8 +16,14 @@ upstream, so you only parse — you do not extract or classify documents here.
   submitted, each classified into a `category` (type) and indexed into structured
   extracted fields under `metadata`, plus per-document OCR (referenced under the
   manifest's `artifacts`, assumed dereferenced/inlined and split into pages here).
-- `loan_file_xml` — MISMO XML loan scenario (optional context).
-- `eligibility_json` — eligibility engine output (optional context).
+- `loan_file_xml` — loan scenario. JSON object (or a JSON string of that object).
+  These keys are required and always populated: `FicoScore`, `LTV`, `DTI`,
+  `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`,
+  `IncomeDocType`, `Channel`, `BorrowerType`, `Citizenship`, `State`, `County`,
+  `LoanType`. `ReservesMonths` and `FirstTimeHomeBuyer` may be omitted. A legacy
+  MISMO XML string is still accepted.
+- `eligibility_json` — eligibility engine output (optional). Used for
+  `eligible_programs` and as a fallback when a loan field is absent.
 - `borrower` / `coborrower` — the loan's party identities (optional; dict
   `{first_name, last_name}` or a name string). When `coborrower` is empty/absent the
   loan is single-party.
@@ -31,8 +37,8 @@ upstream, so you only parse — you do not extract or classify documents here.
    `extracted_fields` from `metadata`, and OCR text — merged from the manifest's
    `artifacts` and split into pages).
 3. Call `build_eval_scenario`. Summarizes counts, group breakdown, document types,
-   eligible programs, and loan-level context (from eligibility `application_data`
-   and the MISMO XML). It also **resolves the loan's parties** (primary borrower +
+   eligible programs, and loan-level context (from `loan_file_xml`; eligibility
+   `application_data` only fills gaps when that optional input is sent). It also **resolves the loan's parties** (primary borrower +
    optional co-borrower) from the `borrower`/`coborrower` input (falling back to
    eligibility, then XML), tags each document with the party it belongs to
    (`party_tags`, via the names in its extracted fields) and each condition with the
