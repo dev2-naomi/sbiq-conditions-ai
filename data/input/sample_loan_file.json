@@ -1,0 +1,19 @@
+{
+  "FicoScore": 728,
+  "LTV": 80,
+  "DTI": 34,
+  "LoanAmount": 420000,
+  "PropertyValue": 525000,
+  "PropertyType": "SFR",
+  "Occupancy": "Primary Residence",
+  "LoanPurpose": "Purchase",
+  "IncomeDocType": "Bank Statement",
+  "Channel": "wholesale",
+  "BorrowerType": "Wage Earner",
+  "Citizenship": "US Citizen",
+  "State": "FL",
+  "County": "Manatee",
+  "LoanType": "Conventional",
+  "ReservesMonths": 6,
+  "FirstTimeHomeBuyer": "No"
+}

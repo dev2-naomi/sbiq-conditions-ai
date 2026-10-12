@@ -25,11 +25,12 @@ def build_input() -> dict:
     conditions = (INPUT_DIR / "sample_conditions.json").read_text(encoding="utf-8")
     documents = (INPUT_DIR / "sample_documents.json").read_text(encoding="utf-8")
     eligibility = (INPUT_DIR / "sample_eligibility.json").read_text(encoding="utf-8")
+    loan_file = (INPUT_DIR / "sample_loan_file.json").read_text(encoding="utf-8")
     return {
         "conditions_json": conditions,
         "documents_json": documents,
         "eligibility_json": eligibility,
-        "loan_file_xml": "",
+        "loan_file_xml": loan_file,
         # Party identities (optional). The bundled sample is a single-borrower loan;
         # leave `coborrower` empty. Pass a dict or a plain name string.
         "borrower": "John Q Borrower",

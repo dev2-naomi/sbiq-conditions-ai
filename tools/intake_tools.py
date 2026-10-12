@@ -4,8 +4,11 @@ intake_tools.py — Tools for STEP_00: Intake & Normalization.
 Inputs (preconditions-style, already in state):
 - conditions_json   : conditions to evaluate (LOS/Encompass export shape)
 - documents_json    : rack & stack (R&S) output — the documents the borrower submitted
-- loan_file_xml     : MISMO XML loan scenario (optional context)
-- eligibility_json  : eligibility engine output (optional context)
+- loan_file_xml     : loan scenario object (JSON object or JSON string). Required
+                      keys are always populated; ReservesMonths and
+                      FirstTimeHomeBuyer may be omitted. A legacy MISMO XML
+                      string is still accepted.
+- eligibility_json  : eligibility engine output (optional)
 - borrower          : primary borrower identity (optional; dict or name string)
 - coborrower        : co-borrower identity (optional; empty ⇒ single-party loan)
 """
@@ -169,6 +172,92 @@ def _light_xml_scenario(xml: str) -> dict:
     return out
 
 
+# Always present on the loan-scenario object. The last two may be omitted.
+_LOAN_FILE_FIELDS = (
+    ("fico", ("FicoScore", "FICO", "fico")),
+    ("ltv", ("LTV", "ltv")),
+    ("dti", ("DTI", "dti")),
+    ("loan_amount", ("LoanAmount", "loan_amount")),
+    ("property_value", ("PropertyValue", "property_value")),
+    ("property_type", ("PropertyType", "property_type")),
+    ("occupancy", ("Occupancy", "occupancy")),
+    ("loan_purpose", ("LoanPurpose", "loan_purpose")),
+    ("income_doc_type", ("IncomeDocType", "income_doc_type")),
+    ("channel", ("Channel", "channel")),
+    ("borrower_type", ("BorrowerType", "borrower_type")),
+    ("citizenship", ("Citizenship", "citizenship")),
+    ("property_state", ("State", "property_state")),
+    ("county", ("County", "county")),
+    ("loan_type", ("LoanType", "loan_type")),
+)
+_LOAN_FILE_OPTIONAL = (
+    ("reserves_months", ("ReservesMonths", "reserves_months")),
+    ("first_time_home_buyer", ("FirstTimeHomeBuyer", "first_time_home_buyer")),
+)
+
+
+def _present(sources: list[dict], keys: tuple[str, ...]):
+    """First non-empty value across sources. 0 and False count as present."""
+    for src in sources:
+        if not isinstance(src, dict):
+            continue
+        for key in keys:
+            if key not in src:
+                continue
+            val = src[key]
+            if val is None or val == "":
+                continue
+            return val
+    return None
+
+
+def _parse_loan_file(raw) -> tuple[dict, dict]:
+    """Parse loan_file_xml into (loan fields, legacy MISMO scenario).
+
+    Accepts a dict, a JSON string of that dict, or a legacy MISMO XML string.
+    A single extra wrapping object is unwrapped when it holds the loan fields.
+    """
+    if raw is None or raw == "":
+        return {}, {}
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return {}, {}
+        if text.startswith("<"):
+            return {}, _light_xml_scenario(text)
+        raw = _loads(text, {})
+    if not isinstance(raw, dict):
+        return {}, {}
+    if "FicoScore" not in raw and "LTV" not in raw:
+        nested = [
+            v for v in raw.values()
+            if isinstance(v, dict) and ("FicoScore" in v or "LTV" in v)
+        ]
+        if len(nested) == 1:
+            raw = nested[0]
+    return raw, {}
+
+
+def _loan_from_sources(loan_file: dict, app_data: dict, xml_scenario: dict) -> dict:
+    """Loan-level facts. The loan file wins; eligibility fills gaps when sent."""
+    sources = [loan_file, app_data]
+    loan = {}
+    for out, keys in _LOAN_FILE_FIELDS:
+        val = _present(sources, keys)
+        if val is not None:
+            loan[out] = val
+    for out, keys in _LOAN_FILE_OPTIONAL:
+        val = _present(sources, keys)
+        if val is not None:
+            loan[out] = val
+    if not loan.get("property_state") and xml_scenario.get("property_state"):
+        loan["property_state"] = xml_scenario["property_state"]
+    city = _present([app_data], ("City", "city")) or xml_scenario.get("property_city")
+    if city:
+        loan["property_city"] = city
+    return loan
+
+
 @tool
 def build_eval_scenario(
     tool_call_id: Annotated[str, InjectedToolCallId] = "",
@@ -176,9 +265,9 @@ def build_eval_scenario(
 ) -> Command:
     """
     Build a compact evaluation scenario summary from the parsed conditions and
-    documents plus the loan scenario (loan_file_xml) and eligibility output
-    (eligibility_json). The eligibility application_data, when present, is the
-    authoritative source for loan-level numbers.
+    documents plus the loan scenario (loan_file_xml). eligibility_json is
+    optional and is used for eligible programs and as a fallback for any loan
+    field the loan file does not carry.
 
     Also resolves the loan's parties (primary borrower + optional co-borrower) and
     stamps each document with the party tag(s) it belongs to (`party_tags`) and each
@@ -195,7 +284,8 @@ def build_eval_scenario(
     app_data = eligibility.get("application_data") if isinstance(eligibility.get("application_data"), dict) else {}
     eligible_programs = eligibility.get("eligible_programs") or eligibility.get("eligiblePrograms") or []
 
-    xml_scenario = _light_xml_scenario(s.get("loan_file_xml") or "")
+    loan_file, xml_scenario = _parse_loan_file(s.get("loan_file_xml"))
+    loan_facts = _loan_from_sources(loan_file, app_data, xml_scenario)
 
     # ---- Party resolution + attribution ----
     parties = resolve_parties(
@@ -218,11 +308,7 @@ def build_eval_scenario(
             "loan_id": conditions[0].get("loan_id") if conditions else None,
             "borrower_name": (parties[0]["name"] if parties else None)
             or app_data.get("BorrowerName") or xml_scenario.get("borrower_name"),
-            "property_state": app_data.get("State") or xml_scenario.get("property_state"),
-            "property_city": app_data.get("City") or xml_scenario.get("property_city"),
-            "loan_amount": app_data.get("LoanAmount"),
-            "ltv": app_data.get("LTV"),
-            "fico": app_data.get("FICO"),
+            **loan_facts,
         },
         "borrowers": borrowers_view,
         "eligible_programs": eligible_programs,

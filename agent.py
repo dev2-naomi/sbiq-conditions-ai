@@ -76,8 +76,8 @@ class EvaluatorState(TypedDict, total=False):
     # ---- Input fields ----
     conditions_json: str       # Raw JSON list of conditions to evaluate (Encompass shape)
     documents_json: str        # Rack & stack (R&S) manifest — documents the borrower submitted (incl. OCR)
-    loan_file_xml: str         # MISMO XML loan scenario (optional context)
-    eligibility_json: str      # Eligibility engine output (optional context)
+    loan_file_xml: Any         # Loan scenario object or JSON string (legacy MISMO XML still accepted)
+    eligibility_json: Any      # Eligibility engine output (optional)
     borrower: Any              # Primary borrower identity (dict {first_name,last_name} or name string) — optional
     coborrower: Any            # Co-borrower identity (dict/string); empty/absent ⇒ single-party loan — optional
     env: str                   # "Test" | "Prod"
