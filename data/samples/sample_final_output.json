@@ -13,14 +13,21 @@
       "property_type": "SFR",
       "occupancy": "Primary Residence",
       "loan_purpose": "Purchase",
-      "income_doc_type": "Bank Statement",
       "channel": "wholesale",
-      "borrower_type": "Wage Earner",
       "citizenship": "US Citizen",
       "county": "Manatee",
       "loan_type": "Conventional",
       "reserves_months": 6,
-      "first_time_home_buyer": "No"
+      "cltv": 80,
+      "incomes": [
+        {
+          "income_tier": "Primary",
+          "is_primary_borrower": true,
+          "borrower_type": "Wage Earner",
+          "income_doc": "Bank Statement",
+          "bank_statements_kind": null
+        }
+      ]
     },
     "eligible_programs": [
       "Flex Select"

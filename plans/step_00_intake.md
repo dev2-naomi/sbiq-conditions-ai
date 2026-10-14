@@ -17,11 +17,13 @@ upstream, so you only parse — you do not extract or classify documents here.
   extracted fields under `metadata`, plus per-document OCR (referenced under the
   manifest's `artifacts`, assumed dereferenced/inlined and split into pages here).
 - `loan_file_xml` — loan scenario. JSON object (or a JSON string of that object).
-  These keys are required and always populated: `FicoScore`, `LTV`, `DTI`,
+  These keys are required and always populated: `FicoScore`, `LTV`, `CLTV`, `DTI`,
   `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`,
-  `IncomeDocType`, `Channel`, `BorrowerType`, `Citizenship`, `State`, `County`,
-  `LoanType`. `ReservesMonths` and `FirstTimeHomeBuyer` may be omitted. A legacy
-  MISMO XML string is still accepted.
+  `Incomes`, `Channel`, `Citizenship`, `State`, `County`, `LoanType`.
+  `Incomes` is 1–3 rows. The required row is the primary borrower's primary
+  income (`income_tier` `"Primary"` and `is_primary_borrower` true). Extra rows
+  are that borrower's secondary income and/or the co-borrower's income.
+  `ReservesMonths` may be omitted. A legacy MISMO XML string is still accepted.
 - `eligibility_json` — eligibility engine output (optional). Used for
   `eligible_programs` and as a fallback when a loan field is absent.
 - `borrower` / `coborrower` — the loan's party identities (optional; dict

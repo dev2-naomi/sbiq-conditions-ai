@@ -5,9 +5,10 @@ Inputs (preconditions-style, already in state):
 - conditions_json   : conditions to evaluate (LOS/Encompass export shape)
 - documents_json    : rack & stack (R&S) output — the documents the borrower submitted
 - loan_file_xml     : loan scenario object (JSON object or JSON string). Required
-                      keys are always populated; ReservesMonths and
-                      FirstTimeHomeBuyer may be omitted. A legacy MISMO XML
-                      string is still accepted.
+                      keys are always populated. Income is an Incomes array
+                      (1–3 rows); the primary borrower's primary income is
+                      required. ReservesMonths may be omitted. A legacy MISMO
+                      XML string is still accepted.
 - eligibility_json  : eligibility engine output (optional)
 - borrower          : primary borrower identity (optional; dict or name string)
 - coborrower        : co-borrower identity (optional; empty ⇒ single-party loan)
@@ -172,19 +173,19 @@ def _light_xml_scenario(xml: str) -> dict:
     return out
 
 
-# Always present on the loan-scenario object. The last two may be omitted.
+# Always present on the loan-scenario object. Income is the Incomes array, not
+# a single IncomeDocType / BorrowerType. ReservesMonths may be omitted.
 _LOAN_FILE_FIELDS = (
     ("fico", ("FicoScore", "FICO", "fico")),
     ("ltv", ("LTV", "ltv")),
+    ("cltv", ("CLTV", "cltv")),
     ("dti", ("DTI", "dti")),
     ("loan_amount", ("LoanAmount", "loan_amount")),
     ("property_value", ("PropertyValue", "property_value")),
     ("property_type", ("PropertyType", "property_type")),
     ("occupancy", ("Occupancy", "occupancy")),
     ("loan_purpose", ("LoanPurpose", "loan_purpose")),
-    ("income_doc_type", ("IncomeDocType", "income_doc_type")),
     ("channel", ("Channel", "channel")),
-    ("borrower_type", ("BorrowerType", "borrower_type")),
     ("citizenship", ("Citizenship", "citizenship")),
     ("property_state", ("State", "property_state")),
     ("county", ("County", "county")),
@@ -238,6 +239,73 @@ def _parse_loan_file(raw) -> tuple[dict, dict]:
     return raw, {}
 
 
+def _first_key(item: dict, *keys):
+    for key in keys:
+        if key in item:
+            return item[key]
+    return None
+
+
+def _as_bool(value):
+    if isinstance(value, bool) or value is None:
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("true", "yes", "1")
+    return bool(value)
+
+
+def _normalize_income_row(item: dict) -> dict | None:
+    """One Incomes entry. bank_statements_kind stays null when it does not apply."""
+    if not isinstance(item, dict):
+        return None
+    tier = _first_key(item, "income_tier", "incomeTier", "IncomeTier")
+    primary = _as_bool(_first_key(item, "is_primary_borrower", "isPrimaryBorrower"))
+    borrower_type = _first_key(item, "borrower_type", "borrowerType", "BorrowerType")
+    income_doc = _first_key(item, "income_doc", "incomeDoc", "IncomeDoc")
+    kind = _first_key(item, "bank_statements_kind", "bankStatementsKind")
+    if kind == "":
+        kind = None
+    if tier in (None, "") and borrower_type in (None, "") and income_doc in (None, ""):
+        return None
+    return {
+        "income_tier": tier,
+        "is_primary_borrower": primary,
+        "borrower_type": borrower_type,
+        "income_doc": income_doc,
+        "bank_statements_kind": kind,
+    }
+
+
+def _incomes_from_sources(loan_file: dict, app_data: dict) -> list[dict]:
+    """1–3 income rows. The required row is the primary borrower's primary income.
+
+    When Incomes is absent, a single primary row is synthesized from a legacy
+    IncomeDocType / BorrowerType (loan file, then eligibility).
+    """
+    raw = None
+    if isinstance(loan_file, dict):
+        raw = loan_file.get("Incomes", loan_file.get("incomes"))
+    rows: list[dict] = []
+    if isinstance(raw, list):
+        for item in raw:
+            row = _normalize_income_row(item)
+            if row:
+                rows.append(row)
+    if rows:
+        return rows
+    doc = _present([loan_file, app_data], ("IncomeDocType", "income_doc_type"))
+    borrower_type = _present([loan_file, app_data], ("BorrowerType", "borrower_type"))
+    if doc or borrower_type:
+        return [{
+            "income_tier": "Primary",
+            "is_primary_borrower": True,
+            "borrower_type": borrower_type,
+            "income_doc": doc,
+            "bank_statements_kind": None,
+        }]
+    return []
+
+
 def _loan_from_sources(loan_file: dict, app_data: dict, xml_scenario: dict) -> dict:
     """Loan-level facts. The loan file wins; eligibility fills gaps when sent."""
     sources = [loan_file, app_data]
@@ -250,6 +318,9 @@ def _loan_from_sources(loan_file: dict, app_data: dict, xml_scenario: dict) -> d
         val = _present(sources, keys)
         if val is not None:
             loan[out] = val
+    incomes = _incomes_from_sources(loan_file, app_data)
+    if incomes:
+        loan["incomes"] = incomes
     if not loan.get("property_state") and xml_scenario.get("property_state"):
         loan["property_state"] = xml_scenario["property_state"]
     city = _present([app_data], ("City", "city")) or xml_scenario.get("property_city")

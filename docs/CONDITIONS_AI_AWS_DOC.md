@@ -86,29 +86,52 @@ JSON objects/arrays **or** JSON strings — both work.
 
 **Loan scenario** (`loan_file_xml`)
 
-All of these are required and always populated, except `ReservesMonths` and `FirstTimeHomeBuyer`, which may be omitted (`0` is a real value when `ReservesMonths` is sent):
+All of these are required and always populated. `ReservesMonths` may be omitted (`0` is a real value when it is sent). `IncomeDocType` and `BorrowerType` are not loan-level fields; income is the `Incomes` array.
 
 ```json
 {
   "FicoScore": 782,
   "LTV": 50,
+  "CLTV": 50,
   "DTI": 34,
   "LoanAmount": 1700000,
   "PropertyValue": 3400000,
   "PropertyType": "SFR",
   "Occupancy": "Second Home",
   "LoanPurpose": "Purchase",
-  "IncomeDocType": "Asset Utilization",
+  "Incomes": [
+    {
+      "income_tier": "Primary",
+      "is_primary_borrower": true,
+      "borrower_type": "Retired / Fixed Income",
+      "income_doc": "Asset Utilization",
+      "bank_statements_kind": null
+    },
+    {
+      "income_tier": "Secondary",
+      "is_primary_borrower": true,
+      "borrower_type": "Wage Earner",
+      "income_doc": "Written VOE",
+      "bank_statements_kind": null
+    },
+    {
+      "income_tier": "Primary",
+      "is_primary_borrower": false,
+      "borrower_type": "Self-Employed",
+      "income_doc": "Bank Statements: 12 Mo.",
+      "bank_statements_kind": "Personal"
+    }
+  ],
   "Channel": "wholesale",
-  "BorrowerType": "Retired / Fixed Income",
   "Citizenship": "US Citizen",
   "State": "NJ",
   "County": "Ocean",
   "LoanType": "Conventional",
-  "ReservesMonths": 0,
-  "FirstTimeHomeBuyer": "No"
+  "ReservesMonths": 0
 }
 ```
+
+`Incomes` has 1–3 rows. The one required row is the primary borrower's primary income: `income_tier` `"Primary"` and `is_primary_borrower` `true`. Further rows are that borrower's secondary income and/or the co-borrower's income. `bank_statements_kind` is `null` unless the income doc is a bank-statement type.
 
 A legacy MISMO XML string is still accepted, but it only yields borrower name and property city/state.
 
@@ -168,21 +191,28 @@ Full example: [`data/samples/sample_run_request.json`](../data/samples/sample_ru
       "borrower_name": "...",
       "fico": 782,
       "ltv": 50,
+      "cltv": 50,
       "dti": 34,
       "loan_amount": 1700000,
       "property_value": 3400000,
       "property_type": "SFR",
       "occupancy": "Second Home",
       "loan_purpose": "Purchase",
-      "income_doc_type": "Asset Utilization",
+      "incomes": [
+        {
+          "income_tier": "Primary",
+          "is_primary_borrower": true,
+          "borrower_type": "Retired / Fixed Income",
+          "income_doc": "Asset Utilization",
+          "bank_statements_kind": null
+        }
+      ],
       "channel": "wholesale",
-      "borrower_type": "Retired / Fixed Income",
       "citizenship": "US Citizen",
       "property_state": "NJ",
       "county": "Ocean",
       "loan_type": "Conventional",
-      "reserves_months": 0,
-      "first_time_home_buyer": "No"
+      "reserves_months": 0
     },
     "eligible_programs": ["Flex Select"],
     "counts": { "conditions": 5, "submitted_documents": 5 },
@@ -274,24 +304,31 @@ export interface ConditionInput {
   };
 }
 
+export interface IncomeRow {
+  income_tier: "Primary" | "Secondary";
+  is_primary_borrower: boolean;
+  borrower_type: string;
+  income_doc: string;
+  bank_statements_kind: string | null;
+}
+
 export interface LoanFile {
   FicoScore: number;
   LTV: number;
+  CLTV: number;
   DTI: number;
   LoanAmount: number;
   PropertyValue: number;
   PropertyType: string;
   Occupancy: string;
   LoanPurpose: string;
-  IncomeDocType: string;
+  Incomes: IncomeRow[];
   Channel: string;
-  BorrowerType: string;
   Citizenship: string;
   State: string;
   County: string;
   LoanType: string;
   ReservesMonths?: number;
-  FirstTimeHomeBuyer?: string;
 }
 
 export interface EvaluatorInput {
@@ -330,22 +367,21 @@ export interface FinalOutput {
       borrower_name?: string | null;
       fico?: number | null;
       ltv?: number | null;
+      cltv?: number | null;
       dti?: number | null;
       loan_amount?: number | null;
       property_value?: number | null;
       property_type?: string | null;
       occupancy?: string | null;
       loan_purpose?: string | null;
-      income_doc_type?: string | null;
+      incomes?: IncomeRow[];
       channel?: string | null;
-      borrower_type?: string | null;
       citizenship?: string | null;
       property_state?: string | null;
       county?: string | null;
       loan_type?: string | null;
       property_city?: string | null;
       reserves_months?: number | null;
-      first_time_home_buyer?: string | null;
     };
     eligible_programs: string[];
     counts: { conditions: number; submitted_documents: number };
