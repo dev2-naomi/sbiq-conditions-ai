@@ -84,7 +84,7 @@ Passed as raw strings (the agent parses them itself):
 | `conditions_json` | JSON | Conditions to evaluate, in the Encompass export shape (`{"condition": {"data": {"Title","Description","Category",...}, "result_document_ids": [...]}}`). A leading log/prefix line is tolerated. |
 | `documents_json` | JSON | Rack & stack (R&S) manifest — submitted documents: each has `id`, a `category` (type) and `metadata` of **structured extracted fields**, plus per-document **OCR** referenced under a top-level `artifacts` array (`type: "ocr"`), assumed dereferenced/inlined |
 | `eligibility_json` | JSON (optional) | Eligibility engine output (`eligible_programs`, and `application_data` only as a fallback) |
-| `loan_file_xml` | JSON object (or JSON string) | Loan scenario. Required and always populated: `FicoScore`, `LTV`, `DTI`, `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`, `IncomeDocType`, `Channel`, `BorrowerType`, `Citizenship`, `State`, `County`, `LoanType`. Optional: `ReservesMonths`, `FirstTimeHomeBuyer`. A legacy MISMO XML string is still accepted. |
+| `loan_file_xml` | JSON object (or JSON string) | Loan scenario. Required and always populated: `FicoScore`, `LTV`, `CLTV`, `DTI`, `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`, `Incomes`, `Channel`, `Citizenship`, `State`, `County`, `LoanType`. `Incomes` is 1–3 rows; the required row is the primary borrower's primary income. Optional: `ReservesMonths`. A legacy MISMO XML string is still accepted. |
 | `borrower` | JSON/dict or string (optional) | Primary borrower identity — `{"first_name","last_name"}` or a name string. Falls back to eligibility when omitted. |
 | `coborrower` | JSON/dict or string (optional) | Co-borrower identity. Empty/absent ⇒ single-party loan. |
 
@@ -133,21 +133,42 @@ POST /threads/{thread_id}/runs
     "loan_file_xml": {
       "FicoScore": 782,
       "LTV": 50,
+      "CLTV": 50,
       "DTI": 34,
       "LoanAmount": 1700000,
       "PropertyValue": 3400000,
       "PropertyType": "SFR",
       "Occupancy": "Second Home",
       "LoanPurpose": "Purchase",
-      "IncomeDocType": "Asset Utilization",
+      "Incomes": [
+        {
+          "income_tier": "Primary",
+          "is_primary_borrower": true,
+          "borrower_type": "Retired / Fixed Income",
+          "income_doc": "Asset Utilization",
+          "bank_statements_kind": null
+        },
+        {
+          "income_tier": "Secondary",
+          "is_primary_borrower": true,
+          "borrower_type": "Wage Earner",
+          "income_doc": "Written VOE",
+          "bank_statements_kind": null
+        },
+        {
+          "income_tier": "Primary",
+          "is_primary_borrower": false,
+          "borrower_type": "Self-Employed",
+          "income_doc": "Bank Statements: 12 Mo.",
+          "bank_statements_kind": "Personal"
+        }
+      ],
       "Channel": "wholesale",
-      "BorrowerType": "Retired / Fixed Income",
       "Citizenship": "US Citizen",
       "State": "NJ",
       "County": "Ocean",
       "LoanType": "Conventional",
-      "ReservesMonths": 0,
-      "FirstTimeHomeBuyer": "No"
+      "ReservesMonths": 0
     },
     "borrower": {"first_name": "Israel", "last_name": "Ortiz"},
     "coborrower": {"first_name": "Natalya", "last_name": "Ortiz"}
