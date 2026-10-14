@@ -144,6 +144,7 @@ class SbiqConditionsStack(Stack):
             file="api/Dockerfile",
             exclude=IMAGE_EXCLUDE,
             platform=ecr_assets.Platform.LINUX_ARM64,
+            build_args={"STAGE": stage},
         )
 
         agent_fn = lambda_.DockerImageFunction(
