@@ -8,6 +8,8 @@
       "CLTV": 80,
       "DTI": 34,
       "LoanAmount": 420000,
+      "PropertyAddress": "742 Evergreen Terrace",
+      "LoanNumber": "1042",
       "PropertyValue": 525000,
       "PropertyType": "SFR",
       "Occupancy": "Primary Residence",

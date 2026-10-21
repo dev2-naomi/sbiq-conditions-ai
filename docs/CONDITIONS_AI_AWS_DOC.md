@@ -86,7 +86,7 @@ JSON objects/arrays **or** JSON strings — both work.
 
 **Loan scenario** (`loan_file_xml`)
 
-All of these are required and always populated. `ReservesMonths` may be omitted (`0` is a real value when it is sent). `IncomeDocType` and `BorrowerType` are not loan-level fields; income is the `Incomes` array.
+All of these are required and always populated, including `PropertyAddress` and `LoanNumber` (used to cross-check documents). `ReservesMonths` may be omitted (`0` is a real value when it is sent). `IncomeDocType` and `BorrowerType` are not loan-level fields; income is the `Incomes` array.
 
 ```json
 {
@@ -95,6 +95,8 @@ All of these are required and always populated. `ReservesMonths` may be omitted 
   "CLTV": 50,
   "DTI": 34,
   "LoanAmount": 1700000,
+  "PropertyAddress": "742 Evergreen Terrace, Toms River, NJ",
+  "LoanNumber": "1042",
   "PropertyValue": 3400000,
   "PropertyType": "SFR",
   "Occupancy": "Second Home",
@@ -318,6 +320,8 @@ export interface LoanFile {
   CLTV: number;
   DTI: number;
   LoanAmount: number;
+  PropertyAddress: string;
+  LoanNumber: string;
   PropertyValue: number;
   PropertyType: string;
   Occupancy: string;
@@ -370,6 +374,8 @@ export interface FinalOutput {
       cltv?: number | null;
       dti?: number | null;
       loan_amount?: number | null;
+      property_address?: string | null;
+      loan_number?: string | null;
       property_value?: number | null;
       property_type?: string | null;
       occupancy?: string | null;

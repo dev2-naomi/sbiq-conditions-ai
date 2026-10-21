@@ -18,8 +18,9 @@ upstream, so you only parse — you do not extract or classify documents here.
   manifest's `artifacts`, assumed dereferenced/inlined and split into pages here).
 - `loan_file_xml` — loan scenario. JSON object (or a JSON string of that object).
   These keys are required and always populated: `FicoScore`, `LTV`, `CLTV`, `DTI`,
-  `LoanAmount`, `PropertyValue`, `PropertyType`, `Occupancy`, `LoanPurpose`,
-  `Incomes`, `Channel`, `Citizenship`, `State`, `County`, `LoanType`.
+  `LoanAmount`, `PropertyAddress`, `LoanNumber`, `PropertyValue`, `PropertyType`,
+  `Occupancy`, `LoanPurpose`, `Incomes`, `Channel`, `Citizenship`, `State`,
+  `County`, `LoanType`.
   `Incomes` is 1–3 rows. The required row is the primary borrower's primary
   income (`income_tier` `"Primary"` and `is_primary_borrower` true). Extra rows
   are that borrower's secondary income and/or the co-borrower's income.

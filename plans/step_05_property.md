@@ -42,7 +42,11 @@ requirements — the condition text is primary. Relevant sections: `APPRAISALS`,
 
 ## Evaluation rules
 
-- Confirm the document address matches the subject property.
+- Confirm the document address matches the subject property. When the tool
+  returns `crosscheck_mismatches`, copy those sentences into the reasons and do
+  not treat that document as satisfying the condition. A mismatch names both the
+  document value and the loan value (address, loan number, borrower or signer,
+  or coverage against the loan amount).
 - Check the explicit constraints in the condition text (coverage amounts, dates,
   mortgagee clause wording, chain-of-title length, "executed by all parties").
 - **Partially Fulfilled** when a document is present but a required field, addendum,

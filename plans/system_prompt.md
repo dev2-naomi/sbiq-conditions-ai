@@ -37,6 +37,23 @@ respect this scoping: a condition is satisfied **only** by evidence for its own 
 party's personal document to the other party's condition. On single-borrower loans
 these tags are absent and there is nothing extra to do.
 
+## Loan cross-checks
+
+When a candidate document's extracted fields include a value below, compare it.
+Skip the check when the document does not have that value. If `crosscheck_mismatches`
+is present, that document does not satisfy the condition: copy each sentence into
+`missing_or_unclear_points` and do not mark the condition Fulfilled on that document.
+A second document that matches the loan on the same point can still satisfy it.
+
+- Property address and loan number — against the loan file.
+- Borrower or entity name — against the borrower and co-borrower on the loan.
+- Insurance coverage — against the loan amount, when the condition requires coverage.
+- Signer — against the borrower and co-borrower. A signer who is not on the loan
+  does not satisfy the condition.
+
+The stored reason must name both values (both addresses, both loan numbers, both
+names, or both amounts).
+
 ## How you operate
 
 The work is split into sequential steps (STEP_00 → STEP_07). Before each turn you
