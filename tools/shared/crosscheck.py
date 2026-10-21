@@ -1,4 +1,4 @@
-"""Cross-check a document against the loan only when the document has the value.
+"""Cross-check a document against the loan.
 
 Compared values:
 - property address and loan number come from the loan file
@@ -6,8 +6,9 @@ Compared values:
 - insurance coverage is compared to the loan amount
 - a signer is compared to the borrowers on the loan
 
-A check is skipped when the document does not carry that value. A mismatch names
-both sides so the underwriter can see the document value and the loan value.
+A mismatch names both sides. A missing value is its own reason. Both are written
+into ``missing_or_unclear_points``. A check that the document does not carry, and
+that the condition does not ask for, is left alone.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ _COVERAGE_KEYS = (
 )
 _SIGNER_KEYS = ("signer", "signed_by", "signatory", "signature_name")
 _SUBJECT_NAME_KEYS = (
-    "insured", "named_insured", "borrower", "borrower_name", "employee",
+    "insured", "named_insured", "name", "borrower", "borrower_name", "employee",
     "customer", "applicant", "account_holder", "entity_name", "vesting",
     "drawer", "received_from",
 )
@@ -186,9 +187,49 @@ def _party_list(party_names: list[str]) -> str:
     return "the loan borrowers are " + ", ".join(quoted[:-1]) + f", and {quoted[-1]}"
 
 
+def _condition_text(condition: dict) -> str:
+    return " ".join(
+        str(condition.get(key) or "") for key in ("label", "body", "raw_text")
+    ).lower()
+
+
 def _condition_requires_coverage(condition: dict) -> bool:
-    text = f"{condition.get('label') or ''} {condition.get('body') or ''}".lower()
+    text = _condition_text(condition)
     return any(token in text for token in ("coverage", "hazard", "insurance", "dwelling"))
+
+
+def _condition_asks_for_address(condition: dict) -> bool:
+    return "address" in _condition_text(condition)
+
+
+def _condition_asks_for_loan_number(condition: dict) -> bool:
+    return "loan number" in _condition_text(condition)
+
+
+def _condition_asks_for_name(condition: dict) -> bool:
+    text = _condition_text(condition)
+    return any(token in text for token in ("borrower name", "entity name", "in the name"))
+
+
+def _condition_asks_for_signer(condition: dict) -> bool:
+    text = _condition_text(condition)
+    return any(token in text for token in ("signer", "signed", "signature", "execute"))
+
+
+def _key_state(fields: dict, keys: tuple[str, ...]) -> str:
+    """``present`` when a key has a value, ``empty`` when a key is blank, else ``absent``."""
+    seen = False
+    for key in keys:
+        if key not in fields:
+            continue
+        seen = True
+        val = fields[key]
+        if val is None or val == "" or val == []:
+            continue
+        if isinstance(val, str) and not val.strip():
+            continue
+        return "present"
+    return "empty" if seen else "absent"
 
 
 def _coverage_value(fields: dict) -> Any:
@@ -210,22 +251,47 @@ def document_mismatches(
 
     doc_address = _first_field(fields, _ADDRESS_KEYS)
     loan_address = loan.get("property_address")
+    address_state = _key_state(fields, _ADDRESS_KEYS)
     if doc_address and loan_address and not _addresses_match(doc_address, loan_address):
         reasons.append(
             "Property address does not match: the document shows "
             f'"{_as_text(doc_address)}" and the loan file shows "{_as_text(loan_address)}".'
         )
+    elif doc_address and not loan_address:
+        reasons.append(
+            "Property address is missing: the loan file does not show a property address "
+            f'and the document shows "{_as_text(doc_address)}".'
+        )
+    elif not doc_address and loan_address and (
+        address_state == "empty" or _condition_asks_for_address(condition)
+    ):
+        reasons.append(
+            "Property address is missing: the document does not show a property address."
+        )
 
     doc_loan_no = _first_field(fields, _LOAN_NUMBER_KEYS)
     loan_no = loan.get("loan_number")
+    loan_no_state = _key_state(fields, _LOAN_NUMBER_KEYS)
     if doc_loan_no and loan_no and not _loan_numbers_match(doc_loan_no, loan_no):
         reasons.append(
             "Loan number does not match: the document shows "
             f'"{_as_text(doc_loan_no)}" and the loan file shows "{_as_text(loan_no)}".'
         )
+    elif doc_loan_no and not loan_no:
+        reasons.append(
+            "Loan number is missing: the loan file does not show a loan number "
+            f'and the document shows "{_as_text(doc_loan_no)}".'
+        )
+    elif not doc_loan_no and loan_no and (
+        loan_no_state == "empty" or _condition_asks_for_loan_number(condition)
+    ):
+        reasons.append(
+            "Loan number is missing: the document does not show a loan number."
+        )
 
     party_names = _party_names(parties)
     subject_names = _subject_names(fields)
+    name_state = _key_state(fields, _SUBJECT_NAME_KEYS + _SUBJECT_NAME_LIST_KEYS)
     if subject_names and party_names and not any(
         _matches_any_party(name, party_names) for name in subject_names
     ):
@@ -233,14 +299,33 @@ def document_mismatches(
         reasons.append(
             f"Borrower name does not match: the document shows {shown} and {_party_list(party_names)}."
         )
+    elif subject_names and not party_names:
+        shown = ", ".join(f'"{name}"' for name in subject_names)
+        reasons.append(
+            f"Borrower name is missing: the loan does not show a borrower and the document shows {shown}."
+        )
+    elif not subject_names and party_names and (
+        name_state == "empty" or _condition_asks_for_name(condition)
+    ):
+        reasons.append(
+            "Borrower name is missing: the document does not show a borrower or entity name."
+        )
 
     signer = _first_field(fields, _SIGNER_KEYS)
     signer_text = _as_text(signer)
+    signer_state = _key_state(fields, _SIGNER_KEYS)
     if signer_text and party_names and not _matches_any_party(signer_text, party_names):
         reasons.append(
             "Signer is not a borrower on the loan: the document is signed by "
             f'"{signer_text}" and {_party_list(party_names)}.'
         )
+    elif signer_text and not party_names:
+        reasons.append(
+            "Signer is missing: the loan does not show a borrower and the document is signed by "
+            f'"{signer_text}".'
+        )
+    elif not signer_text and (signer_state == "empty" or _condition_asks_for_signer(condition)):
+        reasons.append("Signer is missing: the document does not show a signer.")
 
     if _condition_requires_coverage(condition):
         coverage_raw = _coverage_value(fields)
@@ -250,6 +335,15 @@ def document_mismatches(
             reasons.append(
                 "Coverage is too low: the document shows "
                 f"{_format_money(coverage_raw)} and the loan amount is {_format_money(loan_amount)}."
+            )
+        elif coverage is not None and loan_amount is None:
+            reasons.append(
+                "Coverage amount is missing: the loan file does not show a loan amount "
+                f"and the document shows {_format_money(coverage_raw)}."
+            )
+        elif coverage is None:
+            reasons.append(
+                "Coverage amount is missing: the document does not show a coverage amount."
             )
 
     return reasons
@@ -326,21 +420,21 @@ def _passed_checks(
             continue
         doc_address = _first_field(fields, _ADDRESS_KEYS)
         if doc_address and loan.get("property_address") and _addresses_match(doc_address, loan.get("property_address")):
-            cleared.add("Property address does not match")
+            cleared.update({"Property address does not match", "Property address is missing"})
         doc_loan_no = _first_field(fields, _LOAN_NUMBER_KEYS)
         if doc_loan_no and loan.get("loan_number") and _loan_numbers_match(doc_loan_no, loan.get("loan_number")):
-            cleared.add("Loan number does not match")
+            cleared.update({"Loan number does not match", "Loan number is missing"})
         names = _subject_names(fields)
         if names and party_names and any(_matches_any_party(name, party_names) for name in names):
-            cleared.add("Borrower name does not match")
+            cleared.update({"Borrower name does not match", "Borrower name is missing"})
         signer = _as_text(_first_field(fields, _SIGNER_KEYS))
         if signer and party_names and _matches_any_party(signer, party_names):
-            cleared.add("Signer is not a borrower on the loan")
+            cleared.update({"Signer is not a borrower on the loan", "Signer is missing"})
         if _condition_requires_coverage(condition):
             coverage = _money(_coverage_value(fields))
             loan_amount = _money(loan.get("loan_amount"))
             if coverage is not None and loan_amount is not None and coverage >= loan_amount:
-                cleared.add("Coverage is too low")
+                cleared.update({"Coverage is too low", "Coverage amount is missing"})
     return cleared
 
 
