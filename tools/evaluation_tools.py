@@ -26,7 +26,9 @@ def get_conditions_to_evaluate(
     Load the conditions for an evaluation group together with each condition's
     candidate documents — every candidate's document_type, its structured
     extracted_fields, and an ocr_preview (first OCR pages). The response includes
-    the loan scenario (`loan`) when intake built one. Call get_document_ocr
+    the loan scenario (`loan`) when intake built one, and `crosscheck_mismatches`
+    on any candidate whose address, loan number, borrower name, coverage, or
+    signer conflicts with the loan. Call get_document_ocr
     for the full OCR when the preview is insufficient — so you can decide fulfillment.
 
     Args:

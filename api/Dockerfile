@@ -12,6 +12,10 @@ ENV PORT=8080
 ENV AWS_LWA_INVOKE_MODE=response_stream
 ENV AWS_LWA_READINESS_CHECK_PATH=/health
 
+# Per-stage tag so dev and prod do not push the same immutable ECR asset.
+ARG STAGE=local
+LABEL sbiq.stage=$STAGE
+
 COPY requirements.txt ./
 COPY api/requirements.txt ./api-requirements.txt
 

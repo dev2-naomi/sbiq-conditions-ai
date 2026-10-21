@@ -6,6 +6,8 @@
       "property_state": "FL",
       "property_city": "Bradenton",
       "loan_amount": 420000,
+      "property_address": "742 Evergreen Terrace",
+      "loan_number": "1042",
       "ltv": 80,
       "fico": 728,
       "dti": 34,
@@ -76,13 +78,14 @@
       "category": "property",
       "result": "Partially Fulfilled",
       "confidence": 70.0,
-      "short_reason": "Hazard dec page shows sufficient coverage and wind/hail, but the mortgagee clause is not listed.",
+      "short_reason": "Hazard dec page includes wind/hail, but coverage is below the loan amount, the loan number is not on the document, and the mortgagee clause is not listed.",
       "satisfied_points": [
-        "Dwelling coverage $410,000 supports the loan amount",
         "Wind/Hail included",
         "Effective date within range"
       ],
       "missing_or_unclear_points": [
+        "Coverage is too low: the document shows $410,000 and the loan amount is $420,000.",
+        "Loan number is missing: the document does not show a loan number.",
         "Loss payee / mortgagee clause (Lender's name, ISAOA, loan number) not shown on the page provided"
       ],
       "evidence_used": [

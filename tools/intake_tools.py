@@ -181,6 +181,8 @@ _LOAN_FILE_FIELDS = (
     ("cltv", ("CLTV", "cltv")),
     ("dti", ("DTI", "dti")),
     ("loan_amount", ("LoanAmount", "loan_amount")),
+    ("property_address", ("PropertyAddress", "property_address")),
+    ("loan_number", ("LoanNumber", "loan_number")),
     ("property_value", ("PropertyValue", "property_value")),
     ("property_type", ("PropertyType", "property_type")),
     ("occupancy", ("Occupancy", "occupancy")),

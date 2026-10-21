@@ -11,6 +11,7 @@ from __future__ import annotations
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
+from tools.shared.crosscheck import blocking_mismatches, document_mismatches, apply_crosscheck
 from tools.shared.normalize import normalize_evaluations
 from tools.shared.ocr import first_pages
 
@@ -67,6 +68,14 @@ def build_category_context(state: dict, eval_group: str) -> dict:
             if pages:
                 block["ocr_preview"] = first_pages(pages, n=_EVAL_PREVIEW_PAGES)
                 block["ocr_total_pages"] = len(pages)
+            mismatches = document_mismatches(
+                doc,
+                (state.get("eval_scenario") or {}).get("loan") or {},
+                parties,
+                cond,
+            )
+            if mismatches:
+                block["crosscheck_mismatches"] = mismatches
             ev_blocks.append(block)
         cond_view = {
             "condition_id": cid,
@@ -129,11 +138,26 @@ def store_evaluations_command(
     norm = normalize_evaluations(evaluations, default_category=default_cat)
 
     candidate_map = (state or {}).get("candidate_map", {}) or {}
+    documents = (state or {}).get("evidence", []) or []
+    conditions = (state or {}).get("conditions", []) or []
+    loan = ((state or {}).get("eval_scenario") or {}).get("loan") or {}
+    parties = (state or {}).get("parties", []) or []
+    conditions_by_id = {str(c.get("id")): c for c in conditions}
     for ev in norm:
         if not ev.get("evidence_used"):
             backfill = _candidate_ids_for(candidate_map, ev.get("condition_id", ""))
             if backfill:
                 ev["evidence_used"] = backfill
+        condition = conditions_by_id.get(str(ev.get("condition_id")), {"id": ev.get("condition_id")})
+        reasons = blocking_mismatches(
+            condition,
+            documents,
+            candidate_map,
+            ev.get("evidence_used") or [],
+            loan,
+            parties,
+        )
+        apply_crosscheck(ev, reasons)
 
     results = [e.get("result") for e in norm]
     return Command(update={
