@@ -143,11 +143,25 @@ jobs:
             LANGSMITH_PROJECT="${{ steps.stage.outputs.langsmith_dev_project }}"
           fi
 
+          # A merge must not replace a live model key with a stale GitHub secret.
+          # Seed ANTHROPIC_API_KEY only when Secrets Manager does not have one.
+          LIVE_ANTHROPIC="$(aws secretsmanager get-secret-value \
+            --secret-id "$SECRETS_ARN" \
+            --query SecretString --output text 2>/dev/null \
+            | jq -r '.ANTHROPIC_API_KEY // empty' || true)"
+          if [[ -n "$LIVE_ANTHROPIC" ]]; then
+            echo "::add-mask::$LIVE_ANTHROPIC"
+            echo "ANTHROPIC_API_KEY already set; leaving it unchanged."
+            ANTHROPIC_KEY="$LIVE_ANTHROPIC"
+          else
+            ANTHROPIC_KEY="${{ secrets.ANTHROPIC_API_KEY }}"
+          fi
+
           aws secretsmanager put-secret-value \
             --secret-id "$SECRETS_ARN" \
             --secret-string "$(jq -n \
               --arg api_key "${{ steps.stage.outputs.api_key }}" \
-              --arg anthropic "${{ secrets.ANTHROPIC_API_KEY }}" \
+              --arg anthropic "$ANTHROPIC_KEY" \
               --arg anthropic_model "${{ secrets.ANTHROPIC_MODEL }}" \
               --arg langsmith "${{ secrets.LANGSMITH_API_KEY }}" \
               --arg langsmith_project "$LANGSMITH_PROJECT" \

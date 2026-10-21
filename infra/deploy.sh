@@ -127,6 +127,17 @@ if [[ -n "$SECRETS_ARN" ]]; then
         LANGSMITH_PROJECT="${LANGSMITH_DEV_PROJECT:-}"
     fi
 
+    # Do not replace a live model key. Seed it only when the secret has none.
+    LIVE_ANTHROPIC="$(aws secretsmanager get-secret-value \
+        --secret-id "$SECRETS_ARN" \
+        --query SecretString --output text \
+        --region "$AWS_REGION" 2>/dev/null \
+        | jq -r '.ANTHROPIC_API_KEY // empty' || true)"
+    if [[ -n "$LIVE_ANTHROPIC" ]]; then
+        echo "ANTHROPIC_API_KEY already set; leaving it unchanged."
+        ANTHROPIC_API_KEY="$LIVE_ANTHROPIC"
+    fi
+
     SECRETS_JSON=$(jq -n \
         --arg api_key "${API_KEY:-}" \
         --arg anthropic_key "${ANTHROPIC_API_KEY:-}" \

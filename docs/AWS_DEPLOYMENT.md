@@ -33,6 +33,8 @@ cp env.example .env   # if needed; keep ANTHROPIC_API_KEY + LANGSMITH_API_KEY
 
 `deploy.sh` auto-generates and **persists to `.env`**: `API_KEY_DEV` or `API_KEY_PROD` (for the stage you deploy), `LANGSMITH_*_PROJECT`, `CORS_ALLOW_ORIGINS`.
 
+A deploy rewrites the stage secret from GitHub, but it leaves `ANTHROPIC_API_KEY` as it already is in Secrets Manager. The GitHub secret only seeds an empty value. Rotate the model key in Secrets Manager, update the GitHub secret `ANTHROPIC_API_KEY` to the same value, then recycle the function (`update-function-configuration`) so the next cold start loads it. A merge does not rotate it.
+
 Full run against the Function URL:
 
 ```bash
