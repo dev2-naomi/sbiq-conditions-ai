@@ -174,18 +174,12 @@ jobs:
                 LANGSMITH_PROJECT: $langsmith_project
               }')"
 
+      # Health, then authenticated calls with the key just written to the stage secret, so a key
+      # mismatch fails the deploy instead of every client. Creates one empty thread; starts no run.
       - name: Smoke test
-        run: |
-          API_URL=$(jq -r '."SbiqConditionsStack-${{ steps.stage.outputs.stage }}".ApiUrl' output-${{ steps.stage.outputs.stage }}.json)
-          for i in $(seq 1 10); do
-            if curl -sf "${API_URL}health" | jq -e '.status == "ok"' >/dev/null; then
-              echo "Health OK"
-              exit 0
-            fi
-            sleep 3
-          done
-          echo "Health check failed"
-          exit 1
+        env:
+          API_KEY: ${{ steps.stage.outputs.api_key }}
+        run: ./infra/smoke_test_aws.sh "${{ steps.stage.outputs.stage }}"
 
       - name: Output API URL
         run: |
