@@ -3,6 +3,7 @@
 Architecture:
 - Lambda Function URL = API front door (Platform-compatible FastAPI shim)
 - DynamoDB = checkpoints + thread/run metadata
+- S3 = checkpoints too large for a DynamoDB item (offloaded by DynamoDBSaver)
 - Secrets Manager = credentials
 """
 
@@ -21,6 +22,7 @@ from aws_cdk import (
     aws_ecr_assets as ecr_assets,
     aws_lambda as lambda_,
     aws_logs as logs,
+    aws_s3 as s3,
     aws_secretsmanager as secretsmanager,
 )
 from constructs import Construct
@@ -93,6 +95,17 @@ class SbiqConditionsStack(Stack):
             removal_policy=RemovalPolicy.RETAIN if is_prod else RemovalPolicy.DESTROY,
         )
 
+        # No expiry: DynamoDB checkpoints never expire and point at these objects.
+        checkpoint_bucket = s3.Bucket(
+            self,
+            "CheckpointBucket",
+            encryption=s3.BucketEncryption.S3_MANAGED,
+            block_public_access=s3.BlockPublicAccess.BLOCK_ALL,
+            enforce_ssl=True,
+            removal_policy=RemovalPolicy.RETAIN if is_prod else RemovalPolicy.DESTROY,
+            auto_delete_objects=not is_prod,
+        )
+
         agent_secrets = secretsmanager.Secret(
             self,
             "AgentSecrets",
@@ -122,6 +135,7 @@ class SbiqConditionsStack(Stack):
 
         environment = {
             "CHECKPOINT_TABLE_NAME": checkpoint_table.table_name,
+            "CHECKPOINT_S3_BUCKET": checkpoint_bucket.bucket_name,
             "AGENT_SECRETS_ARN": agent_secrets.secret_arn,
             "LANGSMITH_PROJECT": _deploy_env(
                 f"LANGSMITH_{stage.upper()}_PROJECT", f"sbiq-conditions-ai-{stage}"
@@ -165,6 +179,7 @@ class SbiqConditionsStack(Stack):
         agent_fn.node.add_dependency(agent_image)
 
         checkpoint_table.grant_read_write_data(agent_fn)
+        checkpoint_bucket.grant_read_write(agent_fn)
         agent_secrets.grant_read(agent_fn)
 
         agent_fn.configure_async_invoke(retry_attempts=0)
@@ -194,6 +209,7 @@ class SbiqConditionsStack(Stack):
 
         CfnOutput(self, "ApiUrl", value=function_url.url)
         CfnOutput(self, "CheckpointTableName", value=checkpoint_table.table_name)
+        CfnOutput(self, "CheckpointBucketName", value=checkpoint_bucket.bucket_name)
         CfnOutput(self, "AgentSecretsArn", value=agent_secrets.secret_arn)
         CfnOutput(self, "LambdaFunctionName", value=agent_fn.function_name)
         CfnOutput(self, "Stage", value=stage)
