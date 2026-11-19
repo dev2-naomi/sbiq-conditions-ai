@@ -56,6 +56,14 @@ relevance against each document's OCR text.
   **not** deciding fulfillment here.
 - **Prefer recall over precision** — it is cheaper to analyze an extra document than
   to miss the one that satisfies a condition. When in doubt, keep it.
+- **Categories 830 and 794 are catch-alls.** The category name is not a reason to
+  link the document. Read its OCR and its extracted fields first.
+  - No OCR and no extracted content: do not link it. It has insufficient information.
+  - The only extracted content is a borrower or entity name: do not link it. A name
+    says whose file it is, not that the file is about the condition.
+  - OCR text or some other extracted field is present: link it only when that
+    content is about the condition. A recipe, a blank page, or any unrelated text
+    is not evidence.
 - Match on **meaning**, not just keywords: the relevance check is about whether the
   document's content is within the condition's context.
 - A document may be a candidate for **multiple** conditions; a condition may have
