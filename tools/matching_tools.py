@@ -16,6 +16,7 @@ from langgraph.prebuilt import InjectedState
 from langgraph.types import Command
 from typing_extensions import Annotated
 
+from tools.shared.catchall import catchall_usable, is_catchall
 from tools.shared.matching import deterministic_match
 from tools.shared.ocr import PREVIEW_PAGES, first_pages, full_text
 from tools.shared.parties import doc_matches_condition_party
@@ -77,6 +78,9 @@ def deterministic_candidate_match(
         }
         if multi_party:
             entry["party_tags"] = d.get("party_tags") or []
+        if is_catchall(d):
+            entry["catchall_category"] = True
+            entry["catchall_usable"] = catchall_usable(d)
         inventory.append(entry)
 
     conditions_view = []
@@ -87,6 +91,8 @@ def deterministic_candidate_match(
         shortlist = []
         for cand in proposed.get(cid, []):
             doc = docs_by_id.get(str(cand.get("evidence_id")))
+            if doc is not None and not catchall_usable(doc):
+                continue
             if (
                 cand.get("source") == "result_document_ids"
                 or doc is None
@@ -112,7 +118,11 @@ def deterministic_candidate_match(
         "ocr_preview. Read each candidate's first OCR pages to confirm the "
         "document is within the condition's context; escalate to "
         "get_document_ocr(full=True) only when the preview is inconclusive. "
-        "Prefer recall. Then call store_candidate_matches with "
+        "Prefer recall. Categories 830 and 794 are catch-alls: do not use them "
+        "from the category name. Use one only when its OCR or an extracted field "
+        "other than a borrower name shows it is about that condition. A catch-all "
+        "with `catchall_usable` false has no such content and must not be linked. "
+        "Then call store_candidate_matches with "
         "{condition_id: [evidence_id, ...]}."
     )
     result = {
@@ -217,6 +227,7 @@ def store_candidate_matches(
     normalized: dict[str, list] = {}
     total = 0
     dropped = 0
+    dropped_catchall = 0
     for cid, cands in (candidate_map or {}).items():
         cond = cond_by_id.get(cid, {})
         entries = []
@@ -232,8 +243,11 @@ def store_candidate_matches(
                 }
             else:
                 continue
+            doc = docs_by_id.get(str(entry["evidence_id"]))
+            if doc is not None and not catchall_usable(doc):
+                dropped_catchall += 1
+                continue
             if multi_party and entry.get("source") != "result_document_ids":
-                doc = docs_by_id.get(str(entry["evidence_id"]))
                 if doc is not None and not doc_matches_condition_party(doc, cond, parties):
                     dropped += 1
                     continue
@@ -244,6 +258,11 @@ def store_candidate_matches(
     msg = f"Stored candidate map: {len(normalized)} condition(s), {total} total link(s)."
     if dropped:
         msg += f" Dropped {dropped} cross-party link(s)."
+    if dropped_catchall:
+        msg += (
+            f" Dropped {dropped_catchall} catch-all link(s) with no OCR and no "
+            "extracted content beyond a borrower name."
+        )
     return Command(update={
         "candidate_map": normalized,
         "messages": [ToolMessage(msg, tool_call_id=tool_call_id)],

@@ -37,6 +37,16 @@ respect this scoping: a condition is satisfied **only** by evidence for its own 
 party's personal document to the other party's condition. On single-borrower loans
 these tags are absent and there is nothing extra to do.
 
+## Catch-all documents (categories 830 and 794)
+
+These categories are buckets. Do not associate one with a condition because the
+category is named "Other Loan Info" or similar. Read the OCR text and the
+extracted fields first. If both are empty, the document has insufficient
+information and is not evidence. A borrower name by itself is not evidence
+either: it does not show that the file is a mortgage history, vesting document,
+approval, or anything else. Use the document only when the OCR or another
+extracted field shows it is about that condition.
+
 ## Loan cross-checks
 
 When a candidate document's extracted fields include a value below, compare it.

@@ -11,6 +11,7 @@ from __future__ import annotations
 from langchain_core.messages import ToolMessage
 from langgraph.types import Command
 
+from tools.shared.catchall import catchall_usable
 from tools.shared.crosscheck import blocking_mismatches, document_mismatches, apply_crosscheck
 from tools.shared.normalize import normalize_evaluations
 from tools.shared.ocr import first_pages
@@ -112,6 +113,19 @@ def build_category_context(state: dict, eval_group: str) -> dict:
     return ctx
 
 
+def _without_empty_catchalls(evidence_ids: list, documents: list[dict]) -> list[str]:
+    """Drop 830/794 documents that have no OCR and no content beyond a name."""
+    by_id = {str(doc.get("id")): doc for doc in documents if doc.get("id") not in (None, "")}
+    kept: list[str] = []
+    for eid in evidence_ids:
+        doc = by_id.get(str(eid))
+        if doc is not None and not catchall_usable(doc):
+            continue
+        if str(eid) not in kept:
+            kept.append(str(eid))
+    return kept
+
+
 def _candidate_ids_for(candidate_map: dict, condition_id: str) -> list[str]:
     """Evidence ids matched to a condition during STEP_01, in match order."""
     out: list[str] = []
@@ -148,6 +162,7 @@ def store_evaluations_command(
             backfill = _candidate_ids_for(candidate_map, ev.get("condition_id", ""))
             if backfill:
                 ev["evidence_used"] = backfill
+        ev["evidence_used"] = _without_empty_catchalls(ev.get("evidence_used") or [], documents)
         condition = conditions_by_id.get(str(ev.get("condition_id")), {"id": ev.get("condition_id")})
         reasons = blocking_mismatches(
             condition,
